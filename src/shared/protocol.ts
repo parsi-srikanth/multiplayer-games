@@ -1,6 +1,18 @@
 import { PROTOCOL_VERSION } from "./game-contract";
 import type { GameId, PlayerId, RoomId } from "./game-contract";
 
+/** Small enough for room commands while preventing the platform's 32 MiB frame limit from becoming ours. */
+export const MAX_CLIENT_MESSAGE_BYTES = 16 * 1024;
+
+const textEncoder = new TextEncoder();
+
+export function isClientMessageWithinLimit(value: string): boolean {
+  // Every UTF-16 code unit produces at least one UTF-8 byte. This fast path avoids
+  // allocating another large buffer for an obviously oversized hostile frame.
+  return value.length <= MAX_CLIENT_MESSAGE_BYTES &&
+    textEncoder.encode(value).byteLength <= MAX_CLIENT_MESSAGE_BYTES;
+}
+
 export interface ClientHelloMessage {
   readonly type: "client:hello";
   readonly protocolVersion: typeof PROTOCOL_VERSION;
@@ -55,6 +67,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function parseClientMessage(value: string): ClientMessage | undefined {
+  if (!isClientMessageWithinLimit(value)) return undefined;
+
   let parsed: unknown;
   try {
     parsed = JSON.parse(value) as unknown;

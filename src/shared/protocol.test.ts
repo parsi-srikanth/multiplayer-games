@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { PROTOCOL_VERSION } from "./game-contract";
-import { parseClientMessage, serializeServerMessage } from "./protocol";
+import {
+  isClientMessageWithinLimit,
+  MAX_CLIENT_MESSAGE_BYTES,
+  parseClientMessage,
+  serializeServerMessage,
+} from "./protocol";
 
 const validMessages = [
   [{ type: "client:hello", protocolVersion: PROTOCOL_VERSION, displayName: " Ada " }, "client:hello"],
@@ -28,5 +33,23 @@ describe("multiplayer protocol", () => {
     expect(
       serializeServerMessage({ type: "server:pong", nonce: "abc" }),
     ).toBe('{"type":"server:pong","nonce":"abc"}');
+  });
+
+  it("rejects oversized envelopes before parsing", () => {
+    const oversized = JSON.stringify({
+      type: "game:command",
+      command: { nested: { ignored: "x".repeat(MAX_CLIENT_MESSAGE_BYTES) } },
+    });
+
+    expect(isClientMessageWithinLimit(oversized)).toBe(false);
+    expect(parseClientMessage(oversized)).toBeUndefined();
+  });
+
+  it("measures the UTF-8 byte size, not only JavaScript string length", () => {
+    const multibyte = "😀".repeat(MAX_CLIENT_MESSAGE_BYTES / 2);
+
+    expect(multibyte.length).toBe(MAX_CLIENT_MESSAGE_BYTES);
+    expect(isClientMessageWithinLimit(multibyte)).toBe(false);
+    expect(parseClientMessage(multibyte)).toBeUndefined();
   });
 });

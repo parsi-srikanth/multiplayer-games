@@ -1,6 +1,10 @@
 import { DurableObject } from "cloudflare:workers";
 import { PROTOCOL_VERSION } from "../shared/game-contract";
-import { parseClientMessage, serializeServerMessage } from "../shared/protocol";
+import {
+  isClientMessageWithinLimit,
+  parseClientMessage,
+  serializeServerMessage,
+} from "../shared/protocol";
 import type { ServerErrorMessage } from "../shared/protocol";
 
 interface SessionAttachment {
@@ -61,6 +65,12 @@ export class RoomDurableObject extends DurableObject<Env> {
   override webSocketMessage(webSocket: WebSocket, message: string | ArrayBuffer): void {
     if (typeof message !== "string") {
       webSocket.send(errorMessage("invalid_message", "Binary messages are not supported."));
+      webSocket.close(1003, "Binary messages are not supported");
+      return;
+    }
+
+    if (!isClientMessageWithinLimit(message)) {
+      webSocket.close(1009, "Message exceeds the application limit");
       return;
     }
 

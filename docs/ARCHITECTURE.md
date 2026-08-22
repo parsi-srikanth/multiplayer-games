@@ -79,10 +79,10 @@ The transport currently has no global broadcast, matchmaking, presence, or game 
 
 - Room IDs are constrained before Durable Object lookup.
 - The Worker overwrites internal room context; clients cannot choose the trusted header value.
-- All WebSocket payloads are parsed as untrusted input with size/type constraints in the protocol parser.
+- All WebSocket payloads are parsed as untrusted input. Text frames are capped at 16 KiB before `JSON.parse`; binary and oversized frames are closed with WebSocket policy codes. Protocol and game validators add field/type bounds.
 - Server projections must prevent hidden-state disclosure.
 - No secrets live in source or Wrangler config.
-- Future production room work must add message-size limits, per-player command rate limits, origin policy, room admission tokens, and structured abuse metrics before public game launch.
+- Future production room work must add per-player command rate limits, origin policy, room admission tokens, and structured abuse metrics before public game launch.
 
 ## Operations
 
