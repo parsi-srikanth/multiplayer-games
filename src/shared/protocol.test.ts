@@ -3,36 +3,34 @@ import { PROTOCOL_VERSION } from "./game-contract";
 import {
   isClientMessageWithinLimit,
   MAX_CLIENT_MESSAGE_BYTES,
+  MAX_MESSAGE_BYTES,
   parseClientMessage,
   serializeServerMessage,
 } from "./protocol";
 
 const validMessages = [
-  [{ type: "client:hello", protocolVersion: PROTOCOL_VERSION, displayName: " Ada " }, "client:hello"],
-  [{ type: "client:ping", nonce: "abc" }, "client:ping"],
-  [{ type: "game:command", command: { move: 1 } }, "game:command"],
+  { type: "client:hello", protocolVersion: PROTOCOL_VERSION, displayName: " Ada " },
+  { type: "client:hello", protocolVersion: PROTOCOL_VERSION, displayName: "Ada", reconnectToken: "x".repeat(32) },
+  { type: "client:ping", nonce: "abc" }, { type: "room:select_game", gameId: "word-race" },
+  { type: "room:start" }, { type: "game:score", playerId: "p1", delta: 5 }, { type: "game:finish" },
+  { type: "room:return_lobby" }, { type: "room:rematch" }, { type: "room:leave" },
+  { type: "game:command", command: { move: 1 } },
 ] as const;
 
-describe("multiplayer protocol", () => {
-  it.each(validMessages)("accepts %s", (message, type) => {
-    expect(parseClientMessage(JSON.stringify(message))?.type).toBe(type);
-  });
-
-  it.each([
-    "not-json",
-    "null",
+describe("versioned multiplayer protocol", () => {
+  it.each(validMessages)("accepts $type", (message) => { expect(parseClientMessage(JSON.stringify(message))).toEqual(message); });
+  it.each(["not-json", "null",
     JSON.stringify({ type: "client:hello", protocolVersion: 999, displayName: "Ada" }),
-    JSON.stringify({ type: "client:hello", protocolVersion: PROTOCOL_VERSION, displayName: "" }),
-    JSON.stringify({ type: "client:ping", nonce: 12 }),
-    JSON.stringify({ type: "unknown" }),
-  ])("rejects invalid message %s", (message) => {
-    expect(parseClientMessage(message)).toBeUndefined();
+    JSON.stringify({ type: "client:hello", protocolVersion: PROTOCOL_VERSION, displayName: "", extra: true }),
+    JSON.stringify({ type: "client:ping", nonce: 12 }), JSON.stringify({ type: "room:select_game", gameId: "UPPER" }),
+    JSON.stringify({ type: "game:score", playerId: "p1", delta: 10_001 }),
+    '{"type":"game:command","command":{"value":1e999}}', JSON.stringify({ type: "unknown" }),
+  ])("rejects invalid and unbounded message %s", (message) => { expect(parseClientMessage(message)).toBeUndefined(); });
+  it("rejects payloads over the byte limit", () => {
+    expect(parseClientMessage(JSON.stringify({ type: "game:command", command: "x".repeat(MAX_MESSAGE_BYTES) }))).toBeUndefined();
   });
-
-  it("serializes a server message", () => {
-    expect(
-      serializeServerMessage({ type: "server:pong", nonce: "abc" }),
-    ).toBe('{"type":"server:pong","nonce":"abc"}');
+  it("serializes server messages", () => {
+    expect(serializeServerMessage({ type: "server:pong", nonce: "abc" })).toBe('{"type":"server:pong","nonce":"abc"}');
   });
 
   it("rejects oversized envelopes before parsing", () => {
