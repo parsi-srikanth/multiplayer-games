@@ -2,7 +2,8 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": ["vitest/globals", "node"]
+    "jsx": "react-jsx",
+    "types": ["vitest/globals", "node", "vite/client", "@testing-library/jest-dom/vitest"]
   },
-  "include": ["src/**/*.test.ts", "src/shared", "src/games/registry.ts", "src/worker/routing.ts"]
+  "include": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/client/test", "src/client", "src/shared", "src/games/registry.ts", "src/worker/routing.ts"]
 }
