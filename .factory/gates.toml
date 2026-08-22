@@ -1,0 +1,6 @@
+[gates]
+typecheck = ["npm", "run", "typecheck"]
+unit = ["npm", "test"]
+lint = ["npm", "run", "lint"]
+build = ["npm", "run", "build"]
+cloudflare = ["npm", "run", "deploy:dry-run"]
