@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vitest/globals", "node"]
+  },
+  "include": ["src/**/*.test.ts", "src/shared", "src/games/registry.ts", "src/worker/routing.ts"]
+}
