@@ -14,6 +14,8 @@ function DotsBoxesView({ state, playerId, sendCommand }: GameViewProps) {
   const currentName = typeof currentNameValue === "string" ? currentNameValue : "Player";
   const complete = Object.keys(state.edges).length >= 24;
   const palette = new Map(players.map((player, index) => [typeof player.id === "string" ? player.id : "", `player-${String(index + 1)}`]));
+  const playerName = (id: string) => { const value = players.find((player) => player.id === id)?.displayName; return typeof value === "string" ? value : "Player"; };
+  const scores = isRecord(state.scores) ? state.scores : {};
   async function claim(orientation: "h" | "v", row: number, column: number) {
     setError("");
     try { await sendCommand({ type: "claim-edge", orientation, row, column }); }
@@ -25,15 +27,15 @@ function DotsBoxesView({ state, playerId, sendCommand }: GameViewProps) {
     if (gridRow % 2 === 0 && gridColumn % 2 === 0) { cells.push(<span className="dot" aria-hidden="true" key={key} />); continue; }
     if (gridRow % 2 === 1 && gridColumn % 2 === 1) {
       const box = `${String((gridRow - 1) / 2)}-${String((gridColumn - 1) / 2)}`; const owner = state.boxes[box];
-      cells.push(<span className={`box ${typeof owner === "string" ? palette.get(owner) ?? "" : ""}`} aria-label={typeof owner === "string" ? "Claimed box" : "Open box"} key={key} />); continue;
+      cells.push(<span className={`box ${typeof owner === "string" ? palette.get(owner) ?? "" : ""}`} aria-label={typeof owner === "string" ? `${playerName(owner)} claimed box` : "Open box"} key={key}>{typeof owner === "string" ? playerName(owner).slice(0, 1).toUpperCase() : ""}</span>); continue;
     }
     const orientation = gridRow % 2 === 0 ? "h" : "v";
     const row = orientation === "h" ? gridRow / 2 : (gridRow - 1) / 2;
     const column = orientation === "h" ? (gridColumn - 1) / 2 : gridColumn / 2;
     const edge = `${orientation}-${String(row)}-${String(column)}`; const owner = state.edges[edge];
-    cells.push(<button className={`edge edge-${orientation} ${typeof owner === "string" ? palette.get(owner) ?? "claimed" : ""}`} type="button" key={key} aria-label={`${typeof owner === "string" ? "Claimed" : "Open"} ${orientation === "h" ? "horizontal" : "vertical"} edge, row ${String(row + 1)}, column ${String(column + 1)}`} disabled={complete || currentId !== playerId || typeof owner === "string"} onClick={() => { void claim(orientation, row, column); }} />);
+    cells.push(<button className={`edge edge-${orientation} ${typeof owner === "string" ? palette.get(owner) ?? "claimed" : ""}`} type="button" key={key} aria-label={`${typeof owner === "string" ? `${playerName(owner)} claimed` : "Open"} ${orientation === "h" ? "horizontal" : "vertical"} edge, row ${String(row + 1)}, column ${String(column + 1)}`} disabled={complete || currentId !== playerId || typeof owner === "string"} onClick={() => { void claim(orientation, row, column); }} />);
   }
-  return <section className="form-panel" aria-labelledby="dots-heading"><h2 id="dots-heading">Complete boxes to keep your turn.</h2><p role="status">{complete ? "Board complete" : currentId === playerId ? "Your turn" : `${currentName}'s turn`}</p><div className="dots-board" aria-label="Dots and Boxes board">{cells}</div>{error !== "" && <p className="form-error" role="alert">{error}</p>}</section>;
+  return <section className="form-panel" aria-labelledby="dots-heading"><h2 id="dots-heading">Complete boxes to keep your turn.</h2><p role="status">{complete ? "Board complete" : currentId === playerId ? "Your turn" : `${currentName}'s turn`}</p><ul className="dots-scores" aria-label="Current scores">{players.map((player) => { const id = typeof player.id === "string" ? player.id : ""; return <li className={palette.get(id)} key={id}><span>{playerName(id)}</span><strong>{typeof scores[id] === "number" ? scores[id] : 0}</strong></li>; })}</ul><div className="dots-board" aria-label="Dots and Boxes board">{cells}</div>{error !== "" && <p className="form-error" role="alert">{error}</p>}</section>;
 }
 
 const game: ClientGameModule = {

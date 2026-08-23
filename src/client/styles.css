@@ -194,12 +194,18 @@ input::placeholder { color: #777a73; }
   margin: 1rem auto;
 }
 .dot { width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--ink); justify-self: center; }
-.edge { border: 0; border-radius: 999px; background: var(--surface-muted); cursor: pointer; min-width: 0; min-height: 0; }
+.edge { border: 0; border-radius: 999px; background: var(--line); cursor: pointer; min-width: 0; min-height: 0; }
 .edge-h { width: 100%; height: 0.7rem; }
 .edge-v { width: 0.7rem; height: 100%; justify-self: center; }
 .edge.claimed { background: var(--primary); cursor: default; }
 .box { display: grid; place-items: center; font-weight: 800; color: var(--primary-dark); }
 .edge:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.edge.player-1, .box.player-1, .dots-scores .player-1 { background: var(--coral); }
+.edge.player-2, .box.player-2, .dots-scores .player-2 { background: var(--sky); }
+.edge.player-3, .box.player-3, .dots-scores .player-3 { background: var(--gold); }
+.edge.player-4, .box.player-4, .dots-scores .player-4 { background: var(--mint); }
+.dots-scores { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0; list-style: none; }
+.dots-scores li { display: flex; gap: 0.75rem; justify-content: space-between; min-width: 8rem; padding: 0.4rem 0.6rem; border: 1px solid var(--ink); }
 
 @media (hover: hover) and (pointer: fine) {
   .button:hover { box-shadow: 4px 4px 0 var(--ink); transform: translate(-2px, -2px); }
