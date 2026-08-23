@@ -17,6 +17,7 @@
     "cf:typegen": "wrangler types",
     "deploy:dry-run": "npm run build && wrangler deploy --dry-run",
     "smoke:full-stack": "node scripts/full-stack-smoke.mjs",
+    "smoke:browsers": "node scripts/browser-matrix-smoke.mjs",
     "check": "npm run cf:typegen && npm run typecheck && npm run test && npm run lint && npm run build"
   },
   "dependencies": {
@@ -39,6 +40,7 @@
     "eslint-plugin-react-hooks": "latest",
     "eslint-plugin-react-refresh": "latest",
     "jsdom": "^30.0.1",
+    "playwright": "^1.62.1",
     "typescript": "latest",
     "typescript-eslint": "latest",
     "vite": "latest",

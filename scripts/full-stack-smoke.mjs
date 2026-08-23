@@ -60,6 +60,13 @@ function closeCleanly(client) {
     client.ws.close(1000, "smoke complete");
   });
 }
+function waitForServerClose(client) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { client.ws.terminate(); reject(new Error("server close timed out")); }, 5_000);
+    client.ws.once("error", (error) => { clearTimeout(timer); reject(error); });
+    client.ws.once("close", (code) => { clearTimeout(timer); code === 1000 ? resolve() : reject(new Error(`unclean server close code ${String(code)}`)); });
+  });
+}
 
 const host = await connect("Smoke Host");
 let guest = await connect("Smoke Guest");
@@ -92,6 +99,12 @@ await move(guest, 5, "release-smoke-4", host, guest.hello.playerId);
 host.ws.send(JSON.stringify({ type: "game:command", commandId: "release-smoke-5", command: { type: "place", index: 2 } }));
 await waitFor(host, (message) => message.type === "server:ack" && message.commandId === "release-smoke-5", "winning command acknowledgement");
 await waitFor(guest, (message) => message.type === "room:state" && message.room.phase === "results" && message.room.results?.[0]?.playerId === host.hello.playerId, "terminal results convergence");
-await Promise.all([closeCleanly(host), closeCleanly(guest)]);
+host.ws.send(JSON.stringify({ type: "room:return_lobby" }));
+await waitFor(guest, (message) => message.type === "room:state" && message.room.phase === "lobby", "return to lobby");
+const hostClose = waitForServerClose(host);
+host.ws.send(JSON.stringify({ type: "room:leave" }));
+await hostClose;
+await waitFor(guest, (message) => message.type === "room:state" && message.room.players.length === 1 && message.room.viewer.isHost && message.room.players[0]?.id === guest.hello.playerId, "host transfer");
+await closeCleanly(guest);
 clearTimeout(overallTimer);
-console.log(JSON.stringify({ health: "ok", assets: "ok", room: room.code, players: 2, helloFirst: true, pingPong: true, game: "tic-tac-toe-plus", completedGame: true, reconnect: true, synchronized: true, cleanClose: true }));
+console.log(JSON.stringify({ health: "ok", assets: "ok", room: room.code, players: 2, helloFirst: true, pingPong: true, game: "tic-tac-toe-plus", completedGame: true, reconnect: true, synchronized: true, hostTransfer: true, cleanClose: true }));

@@ -10,8 +10,8 @@ The Worker uses one SQLite Durable Object per room, hibernating WebSockets, five
 
 - 96 Node/jsdom tests and three Cloudflare Workers-runtime tests.
 - TypeScript, ESLint, Vite production build, dependency audit, Wrangler dry run, and startup analysis.
-- Local and public full-stack smoke: health, static assets, room creation, two WebSocket clients, hello/ping/pong, game selection and complete authoritative Tic-Tac-Toe+ round, reconnect with preserved identity, converged viewer projection, and clean closure.
-- Automated axe scan plus headless Chromium production smoke at 320×568 and iPhone 13's 390×844 viewport, with no horizontal overflow or console/page errors and a usable create-room form.
+- Local and public full-stack smoke: health, static assets, room creation, two WebSocket clients, hello/ping/pong, game selection and complete authoritative Tic-Tac-Toe+ round, reconnect with preserved identity, converged viewer projection, deterministic host transfer, and clean closure.
+- Public browser matrix passed in desktop Chromium, Firefox, and WebKit; Chromium 320px portrait/landscape; and iPhone 13 WebKit portrait/landscape. Every case had zero axe violations, console/page errors, or horizontal overflow, plus keyboard-focusable creation controls.
 
 This is not evidence for the full physical-device/browser matrix in `TESTING.md`.
 
@@ -21,7 +21,6 @@ This is not evidence for the full physical-device/browser matrix in `TESTING.md`
 
 ## Exact continuation point
 
-1. Run the physical mobile/browser matrix and record evidence, including reconnect/background behavior.
-2. Add live host-transfer coverage alongside the existing reconnect and complete-game smoke.
-3. Implement Memory Match in an isolated reviewed PR.
-4. Implement Trivia Blitz, then Category Blitz, in separate reviewed PRs.
+1. Optionally run physical iOS Safari and Android Chrome checks, especially reconnect/background and virtual-keyboard behavior; automated engine/viewport coverage is complete.
+2. Await owner direction before starting any remaining game.
+3. If approved later, implement Memory Match, then Trivia Blitz, then Category Blitz in separate reviewed PRs.
