@@ -41,4 +41,7 @@ export interface GameDefinition<State, Command, PublicState> {
     context: GameContext,
   ): GameTransition<State>;
   projectState(state: Readonly<State>, viewer: PlayerId): PublicState;
+  /** Required by the authoritative room runtime to derive results without trusting clients. */
+  isComplete?(state: Readonly<State>): boolean;
+  getScores?(state: Readonly<State>): Readonly<Record<PlayerId, number>>;
 }

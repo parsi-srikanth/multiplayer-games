@@ -194,4 +194,6 @@ export const cowsBullsChallenge: GameDefinition<ChallengeState, ChallengeCommand
       ...(state.phase === "results" ? { revealedSecrets: state.secrets } : {}),
     };
   },
+  isComplete: (state) => state.phase === "results",
+  getScores: (state) => state.scores,
 };

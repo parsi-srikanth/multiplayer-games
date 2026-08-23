@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.{ts,tsx}"],
+    exclude: ["src/**/*.worker.test.ts"],
     setupFiles: ["./src/client/test/setup.ts"],
     coverage: { enabled: false },
   },

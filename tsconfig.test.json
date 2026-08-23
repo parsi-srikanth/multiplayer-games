@@ -5,5 +5,6 @@
     "jsx": "react-jsx",
     "types": ["vitest/globals", "node", "vite/client", "@testing-library/jest-dom/vitest"]
   },
-  "include": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/client/test", "src/client", "src/shared", "src/games/registry.ts", "src/worker/routing.ts"]
+  "include": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/client/test", "src/client", "src/shared", "src/games/registry.ts", "src/worker/routing.ts"],
+  "exclude": ["src/**/*.worker.test.ts"]
 }

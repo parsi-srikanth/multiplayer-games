@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ESNext"],
+    "skipLibCheck": true,
+    "types": ["./worker-configuration.d.ts", "./cloudflare-test-types.d.ts", "vitest/globals"]
+  },
+  "include": ["src/**/*.worker.test.ts", "src/worker", "src/shared", "src/games", "worker-configuration.d.ts"]
+}
