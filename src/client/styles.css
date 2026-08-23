@@ -223,7 +223,8 @@ input::placeholder { color: #777a73; }
 .sudoku-grid button { aspect-ratio: 1; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); font-size: 1.4rem; font-weight: 800; }
 .sudoku-grid button.clue { background: var(--mint); }
 .sudoku-grid button.selected { outline: 4px solid var(--focus); outline-offset: -4px; }
-.sudoku-numbers, .sudoku-progress { display: flex; justify-content: center; gap: 0.6rem; padding: 0; list-style: none; }
+.sudoku-numbers, .sudoku-progress { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; padding: 0; list-style: none; }
+.sudoku-progress li { overflow-wrap: anywhere; }
 .sudoku-numbers button { min-width: 3rem; min-height: 3rem; border: 2px solid var(--ink); background: var(--gold); font-weight: 800; }
 
 @media (hover: hover) and (pointer: fine) {

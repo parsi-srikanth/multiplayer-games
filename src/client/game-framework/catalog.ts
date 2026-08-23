@@ -1,5 +1,5 @@
 import type { ClientGameModule, ClientGameMetadata } from "./types";
-import { gameRegistry } from "../../games/registry";
+import { implementedGameIds } from "./implemented-games";
 
 const discovered = import.meta.glob<{ default: ClientGameModule }>(
   "../games/*/index.tsx",
@@ -21,8 +21,8 @@ function buildCatalog(): readonly ClientGameModule[] {
 }
 
 export const clientGames = buildCatalog();
-export const availableClientGames = clientGames.filter((game) => gameRegistry.get(game.metadata.id) !== undefined);
-export function isGameAvailable(gameId: string): boolean { return gameRegistry.get(gameId) !== undefined; }
+export const availableClientGames = clientGames.filter((game) => implementedGameIds.has(game.metadata.id));
+export function isGameAvailable(gameId: string): boolean { return implementedGameIds.has(gameId); }
 
 export function getClientGame(gameId: string): ClientGameModule | undefined {
   return clientGames.find((game) => game.metadata.id === gameId);
