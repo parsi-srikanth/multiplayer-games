@@ -34,7 +34,7 @@ Use the exact local and live probes in [Deployment](DEPLOYMENT.md). A passing sm
 6. the client sees a clean `1000` close; and
 7. Wrangler/live logs show no delayed callback error.
 
-The smoke proves only the implemented transport baseline. It does not prove admission, membership, reconnect recovery, game commands, hidden-state safety, or 2–4 player play.
+The maintained smoke additionally proves two-player admission, authoritative game selection/start, a correlated game command, and second-viewer convergence. It does not prove reconnect recovery, host transfer, hidden-state safety across every game, more than two players, or an entire terminal game.
 
 ## Multiplayer acceptance matrix
 

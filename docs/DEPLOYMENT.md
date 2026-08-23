@@ -28,7 +28,7 @@ Keep Wrangler running, then execute the maintained two-client contract in anothe
 BASE_URL=http://localhost:8787 npm run smoke:full-stack
 ```
 
-The smoke verifies health and assets, creates a room through the rate-limited API, admits two independent WebSocket clients, selects and starts Tic-Tac-Toe+, submits a correlated authoritative move, and checks that the second viewer converges. Inspect the Wrangler terminal after clean socket closure; delayed Durable Object callback errors fail the smoke.
+The bounded smoke verifies health and assets, creates a room through the rate-limited API, admits two independent WebSocket clients, validates hello/ping/pong, selects and completes Tic-Tac-Toe+, reconnects one player with preserved identity, checks viewer convergence, and requires clean socket closures. Inspect the Wrangler terminal after closure; delayed Durable Object callback errors fail the smoke.
 
 ## Production release
 

@@ -10,14 +10,14 @@ The Worker uses one SQLite Durable Object per room, hibernating WebSockets, five
 
 - 96 Node/jsdom tests and three Cloudflare Workers-runtime tests.
 - TypeScript, ESLint, Vite production build, dependency audit, Wrangler dry run, and startup analysis.
-- Local full-stack smoke: health, static assets, room creation, two WebSocket clients, game selection/start, correlated authoritative command acknowledgement, and converged viewer projection.
-- Automated axe scan and 320 CSS-pixel shell smoke.
+- Local and public full-stack smoke: health, static assets, room creation, two WebSocket clients, hello/ping/pong, game selection and complete authoritative Tic-Tac-Toe+ round, reconnect with preserved identity, converged viewer projection, and clean closure.
+- Automated axe scan plus headless Chromium production smoke at 320×568 and iPhone 13's 390×844 viewport, with no horizontal overflow or console/page errors and a usable create-room form.
 
 This is not evidence for the full physical-device/browser matrix in `TESTING.md`.
 
 ## Production status
 
-`https://games.srikanthparsi.com` is live on Cloudflare Worker version `6688f552-cf51-4f62-be58-840e85dcf9ca`. DNS, HTTPS, static assets, health, room creation, two WebSocket admissions, authoritative Tic-Tac-Toe+ start/move acknowledgement, and second-viewer convergence were verified from the public custom domain. The architecture remains eligible for `$0/month under bounded free-tier usage`; this is conditional on traffic staying within Cloudflare's free allowances.
+`https://games.srikanthparsi.com` is live on Cloudflare Worker version `6688f552-cf51-4f62-be58-840e85dcf9ca`. DNS, HTTPS, static assets, health, room creation, two WebSocket admissions, a complete authoritative Tic-Tac-Toe+ round, reconnect, synchronization, and clean closure were verified from the public custom domain. The architecture remains eligible for `$0/month under bounded free-tier usage`; this is conditional on traffic staying within Cloudflare's free allowances.
 
 ## Exact continuation point
 
