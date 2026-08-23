@@ -55,7 +55,10 @@ describe("authoritative room engine", () => {
     expect(expireDisconnectedPlayers(state, 101 + RECONNECT_GRACE_MS - 1)).toEqual([]);
     expect(expireDisconnectedPlayers(state, 101 + RECONNECT_GRACE_MS)).toEqual(["p1"]);
   });
-  it("enforces reconnect expiry synchronously even when an alarm is delayed", () => {
+  it("permits connection replacement but enforces reconnect expiry when an alarm is delayed", () => {
+    const connected = roomWithPlayers(1);
+    expect(reconnectPlayer(connected, "token-1", 100)).toMatchObject({ ok: true, value: { id: "p1", connected: true } });
+
     const beforeDeadline = roomWithPlayers(1);
     disconnectPlayer(beforeDeadline, "p1", 100);
     expect(reconnectPlayer(beforeDeadline, "token-1", 100 + RECONNECT_GRACE_MS - 1)).toMatchObject({ ok: true });
