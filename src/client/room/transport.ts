@@ -1,5 +1,5 @@
 import { CloudflareRoomTransport } from "./cloudflare-transport";
-import { gameRegistry } from "../../games/registry";
+import { localGameRegistry } from "./local-game-registry";
 
 export type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "offline";
 export type RoomPhase = "lobby" | "playing" | "results";
@@ -130,7 +130,7 @@ export class MockRoomTransport implements RoomTransport {
     if (phase === "playing") {
       const snapshot = this.getSnapshot(roomId);
       if (snapshot === undefined) return Promise.reject(new Error("Room not found."));
-      const game = gameRegistry.get(snapshot.gameId);
+      const game = localGameRegistry.get(snapshot.gameId);
       if (game !== undefined) {
         if (snapshot.players.length < game.metadata.minimumPlayers || snapshot.players.length > game.metadata.maximumPlayers)
           return Promise.reject(new Error(`This game requires ${String(game.metadata.minimumPlayers)}–${String(game.metadata.maximumPlayers)} players.`));
@@ -151,7 +151,7 @@ export class MockRoomTransport implements RoomTransport {
   sendGameCommand(roomId: string, command: unknown): Promise<void> {
     const snapshot = this.getSnapshot(roomId);
     if (snapshot === undefined) return Promise.reject(new Error("Room not found."));
-    const game = gameRegistry.get(snapshot.gameId);
+    const game = localGameRegistry.get(snapshot.gameId);
     const state = this.#gameStates.get(snapshot.id);
     if (game === undefined || state === undefined) {
       this.#update(roomId, (room) => ({ ...room, gameState: command }));

@@ -23,6 +23,7 @@ describe("GameRegistry", () => {
       "tic-tac-toe-plus",
       "dots-boxes",
       "connect-four",
+      "sudoku-sprint",
     ]);
   });
 

@@ -1,9 +1,13 @@
-import { PracticeGameView } from "../../game-framework/PracticeGameView";
-import type { ClientGameModule } from "../../game-framework/types";
-
-const game: ClientGameModule = {
-  metadata: { id: "sudoku-sprint", name: "Sudoku Sprint", description: "Race through the same puzzle with accuracy first.", shortDescription: "Race through the same puzzle with accuracy first.", minimumPlayers: 1, maximumPlayers: 4, estimatedMinutes: 12, accent: "sky", icon: "9", supportsSolo: true },
-  View: PracticeGameView,
-};
-
+import { useState } from "react";
+import type { ClientGameModule, GameViewProps } from "../../game-framework/types";
+function record(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
+// eslint-disable-next-line react-refresh/only-export-components
+function View({ state, sendCommand }: GameViewProps) {
+  const [selected, setSelected] = useState<number | null>(null); const [error, setError] = useState("");
+  if (!record(state) || !Array.isArray(state.board) || !Array.isArray(state.puzzle) || !Array.isArray(state.players)) return <p role="status">Preparing the puzzle…</p>;
+  const board = state.board as readonly number[]; const puzzle = state.puzzle as readonly number[]; const complete = state.complete === true; const progress = record(state.progress) ? state.progress : {}; const players = state.players.filter(record);
+  async function place(value: number) { if (selected === null) return; setError(""); try { await sendCommand({ type: "place", row: Math.floor(selected / 4), column: selected % 4, value }); setSelected(null); } catch (reason) { setError(reason instanceof Error ? reason.message : "Entry rejected."); } }
+  return <section className="form-panel" aria-labelledby="sudoku-heading"><h2 id="sudoku-heading">Fill the 4×4 grid first.</h2><p role="status">{complete ? "Sprint complete" : `Mistakes: ${typeof state.mistakes === "number" ? String(state.mistakes) : "0"}`}</p><ul className="sudoku-progress" aria-label="Player progress">{players.map((player) => { const id = typeof player.id === "string" ? player.id : ""; const name = typeof player.displayName === "string" ? player.displayName : "Player"; return <li key={id}>{name}: {typeof progress[id] === "number" ? String(progress[id]) : "0"}/16</li>; })}</ul><div className="sudoku-grid" aria-label="Sudoku board">{board.map((value, index) => { const clue = puzzle[index] !== 0; const row = Math.floor(index / 4) + 1; const column = index % 4 + 1; return <button key={index} type="button" className={`${clue ? "clue" : ""} ${selected === index ? "selected" : ""}`} aria-label={`Row ${String(row)}, column ${String(column)}, ${value === 0 ? "empty" : String(value)}${clue ? ", clue" : ""}`} disabled={complete || clue || value !== 0} onClick={() => { setSelected(index); }}>{value === 0 ? "" : value}</button>; })}</div><div className="sudoku-numbers" aria-label="Choose a number">{[1,2,3,4].map((value) => <button type="button" key={value} disabled={selected === null || complete} onClick={() => { void place(value); }}>{value}</button>)}</div>{error !== "" && <p role="alert">{error}</p>}</section>;
+}
+const game: ClientGameModule = { metadata: { id: "sudoku-sprint", name: "Sudoku Sprint", description: "Race through a compact Sudoku while the server tracks mistakes.", shortDescription: "Solve a compact grid first.", minimumPlayers: 1, maximumPlayers: 4, estimatedMinutes: 6, icon: "4", accent: "mint", supportsSolo: false }, View };
 export default game;
