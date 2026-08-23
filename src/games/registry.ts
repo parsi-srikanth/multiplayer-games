@@ -2,6 +2,7 @@ import type { GameDefinition, GameId, GameMetadata, PlayerId, PlayerView } from 
 import { cowsBullsChallenge } from "./cows-bulls-challenge";
 import { cowsBullsClassic } from "./cows-bulls-classic";
 import { wordRace } from "./word-race";
+import { ticTacToePlus } from "./tic-tac-toe-plus";
 
 export interface RuntimeGame {
   readonly metadata: GameMetadata;
@@ -41,3 +42,4 @@ export const gameRegistry = new GameRegistry();
 gameRegistry.register(cowsBullsChallenge);
 gameRegistry.register(cowsBullsClassic);
 gameRegistry.register(wordRace);
+gameRegistry.register(ticTacToePlus);
