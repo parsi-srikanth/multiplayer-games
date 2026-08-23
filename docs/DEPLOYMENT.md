@@ -22,42 +22,13 @@ npx wrangler check startup
 npm run dev:worker -- --local --port 8787
 ```
 
-Keep Wrangler running, then execute the HTTP and WebSocket contract in another shell:
+Keep Wrangler running, then execute the maintained two-client contract in another shell:
 
 ```bash
-BASE_URL=http://127.0.0.1:8787 WS_URL=ws://127.0.0.1:8787 \
-  bash -c '
-    set -euo pipefail
-    curl --fail --silent --show-error "$BASE_URL/api/health" | tee /tmp/parsi-health.json
-    curl --fail --silent --show-error --output /tmp/parsi-index.html "$BASE_URL/"
-    grep -qi "<!doctype html" /tmp/parsi-index.html
-    BASE_URL="$BASE_URL" WS_URL="$WS_URL" node --input-type=module <<"NODE"
-const room = `smoke-${Date.now()}`;
-const ws = new WebSocket(`${process.env.WS_URL}/api/rooms/${room}/connect`);
-const timeout = setTimeout(() => { console.error("websocket smoke timeout"); process.exit(1); }, 10_000);
-let hello = false;
-ws.addEventListener("message", ({ data }) => {
-  const message = JSON.parse(String(data));
-  if (!hello) {
-    if (message.type !== "server:hello" || message.protocolVersion !== 1 || message.roomId !== room || typeof message.playerId !== "string") process.exit(1);
-    hello = true;
-    ws.send(JSON.stringify({ type: "client:ping", nonce: "release-smoke" }));
-    return;
-  }
-  if (message.type !== "server:pong" || message.nonce !== "release-smoke") process.exit(1);
-  clearTimeout(timeout);
-  ws.close(1000, "smoke complete");
-});
-ws.addEventListener("error", () => process.exit(1));
-ws.addEventListener("close", ({ code }) => {
-  if (!hello || code !== 1000) process.exit(1);
-  console.log("websocket smoke passed");
-});
-NODE
-  '
+BASE_URL=http://localhost:8787 npm run smoke:full-stack
 ```
 
-Also inspect the Wrangler terminal after the clean close; delayed Durable Object callback errors fail the smoke. The expected health body is `{"status":"ok"}`. A `101` alone is insufficient: the socket must deliver `server:hello`, answer `client:ping` with the matching `server:pong`, and close with code `1000` without server errors.
+The smoke verifies health and assets, creates a room through the rate-limited API, admits two independent WebSocket clients, selects and starts Tic-Tac-Toe+, submits a correlated authoritative move, and checks that the second viewer converges. Inspect the Wrangler terminal after clean socket closure; delayed Durable Object callback errors fail the smoke.
 
 ## Production release
 
@@ -108,36 +79,10 @@ npx wrangler tail parsi-games --status error
 Keep that tail active. In a second shell, run immediately after deploy from a network outside the developer machine:
 
 ```bash
-BASE_URL=https://games.srikanthparsi.com WS_URL=wss://games.srikanthparsi.com \
-  bash -c '
-    set -euo pipefail
-    curl --fail --silent --show-error --proto "=https" --tlsv1.2 "$BASE_URL/api/health" | tee /tmp/parsi-live-health.json
-    curl --fail --silent --show-error --proto "=https" --tlsv1.2 --output /tmp/parsi-live-index.html "$BASE_URL/"
-    grep -qi "<!doctype html" /tmp/parsi-live-index.html
-    BASE_URL="$BASE_URL" WS_URL="$WS_URL" node --input-type=module <<"NODE"
-const room = `release-${Date.now()}`;
-const ws = new WebSocket(`${process.env.WS_URL}/api/rooms/${room}/connect`);
-const timeout = setTimeout(() => process.exit(1), 10_000);
-let hello = false;
-ws.addEventListener("message", ({ data }) => {
-  const message = JSON.parse(String(data));
-  if (!hello) {
-    if (message.type !== "server:hello" || message.protocolVersion !== 1 || message.roomId !== room || typeof message.playerId !== "string") process.exit(1);
-    hello = true;
-    ws.send(JSON.stringify({ type: "client:ping", nonce: "live-smoke" }));
-  } else {
-    if (message.type !== "server:pong" || message.nonce !== "live-smoke") process.exit(1);
-    clearTimeout(timeout);
-    ws.close(1000, "live smoke complete");
-  }
-});
-ws.addEventListener("error", () => process.exit(1));
-ws.addEventListener("close", ({ code }) => { if (!hello || code !== 1000) process.exit(1); console.log("live websocket smoke passed"); });
-NODE
-  '
+BASE_URL=https://games.srikanthparsi.com npm run smoke:full-stack
 ```
 
-Keep the first shell's tail active throughout the smoke connection and close. Stop it with `Ctrl-C` after confirming no related errors. Separately verify in a mobile browser that the page loads over HTTPS without certificate or mixed-content warnings.
+Keep the first shell's tail active throughout the two-client smoke and clean socket closure. Stop it after confirming no related errors. Separately verify in a mobile browser that the page loads over HTTPS without certificate or mixed-content warnings.
 
 ## Rollback
 

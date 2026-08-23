@@ -1,6 +1,6 @@
 # Testing and acceptance
 
-> **Status:** this document defines gates. It does not claim that ten games, a complete room lifecycle, production deployment, or the acceptance matrix currently pass.
+> **Checkpoint status (2026-08-23):** seven games and the authoritative room lifecycle pass the automated and local full-stack evidence recorded in `CHECKPOINT.md`. Production deployment and the complete physical-device/browser matrix remain unverified.
 
 ## Automated baseline
 
@@ -20,7 +20,7 @@ npx wrangler check startup
 
 `npm run check` aggregates type generation, typecheck, unit tests, lint, and build. Run it again after local Wrangler smoke testing because `.wrangler/` artifacts can reveal ignore/configuration problems.
 
-Current tests cover selected protocol parsing, routing, and discovery-registry behavior. Coverage is not evidence for game correctness or multiplayer readiness.
+Current tests cover protocol bounds, routing, room lifecycle/reconnect/cleanup, Durable Object persistence and hibernation behavior, executable game rules and projections, client adapters, accessibility, and a 320 CSS-pixel shell smoke. Local two-client WebSocket integration is recorded in `CHECKPOINT.md`; this is not a substitute for the full live and physical-device matrices below.
 
 ## Transport smoke contract
 
