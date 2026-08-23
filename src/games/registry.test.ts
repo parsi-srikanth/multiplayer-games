@@ -20,6 +20,7 @@ describe("GameRegistry", () => {
       "cows-bulls-challenge",
       "cows-bulls-classic",
       "word-race",
+      "tic-tac-toe-plus",
     ]);
   });
 
