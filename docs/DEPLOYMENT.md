@@ -109,6 +109,18 @@ npx wrangler rollback "$GOOD_VERSION_ID" --message "rollback after failed releas
 
 Repeat the full live verification contract after rollback. If a release changed Durable Object class lifecycle or incompatible stored data, stop and use the release-specific forward-fix/data recovery plan; Cloudflare may reject the rollback and code rollback cannot undo data.
 
+After a successful drill or resolved incident, restore the reviewed release version explicitly and repeat live verification:
+
+```bash
+RELEASE_VERSION_ID="REPLACE_WITH_REVIEWED_RELEASE_VERSION_ID"
+test "$RELEASE_VERSION_ID" != "REPLACE_WITH_REVIEWED_RELEASE_VERSION_ID"
+npx wrangler versions deploy "${RELEASE_VERSION_ID}@100%" --message "roll forward to reviewed release" --yes
+BASE_URL=https://games.srikanthparsi.com npm run smoke:full-stack
+BASE_URL=https://games.srikanthparsi.com npm run smoke:browsers
+```
+
+Do not leave a rollback drill serving the old version. Confirm the active deployment/version after roll-forward.
+
 ## Release evidence gate
 
 Record these values for each release. The 2026-08-23 checkpoint evidence is consolidated in `CHECKPOINT.md` and the linked GitHub pull request rather than an external paid evidence store:
