@@ -12,6 +12,7 @@ const COMMON_FIVE_LETTER_WORDS = [
 ] as const;
 
 const WORDS = new Set<string>(COMMON_FIVE_LETTER_WORDS);
+export const challengeWords: readonly string[] = COMMON_FIVE_LETTER_WORDS;
 
 export function normalizeChallengeWord(value: string): string | undefined {
   const normalized = value.trim().toUpperCase();

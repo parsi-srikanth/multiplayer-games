@@ -1,5 +1,5 @@
 import type { GameDefinition, PlayerId, PlayerView } from "../../shared/game-contract";
-import { normalizeChallengeWord } from "../cows-bulls-challenge/dictionary";
+import { challengeWords, normalizeChallengeWord } from "../cows-bulls-challenge/dictionary";
 import { scoreCowsAndBulls } from "../cows-bulls-challenge/scoring";
 import type { CowsBullsFeedback } from "../cows-bulls-challenge/scoring";
 
@@ -81,11 +81,14 @@ function isComplete(state: ClassicState, playerId: PlayerId): boolean {
 
 export function createCowsBullsClassicGame(
   config: ClassicConfig = { mode: "digits", maxAttempts: 10 },
-  secretProvider: () => string = createNumericSecret,
+  secretProvider?: () => string,
 ): GameDefinition<ClassicState, ClassicCommand, ClassicPublicState> {
   if (!Number.isSafeInteger(config.maxAttempts) || config.maxAttempts < 1 || config.maxAttempts > 20) {
     throw new Error("maxAttempts must be between 1 and 20.");
   }
+  const resolvedSecretProvider = secretProvider ?? (config.mode === "digits"
+    ? createNumericSecret
+    : () => challengeWords[randomIndex(challengeWords.length)] ?? "APPLE");
 
   return {
     metadata: {
@@ -98,7 +101,7 @@ export function createCowsBullsClassicGame(
 
     createInitialState(players: readonly PlayerView[]): ClassicState {
       if (players.length < 1 || players.length > 4) throw new Error("Classic requires 1–4 players.");
-      const secret = secretProvider().trim().toUpperCase();
+      const secret = resolvedSecretProvider().trim().toUpperCase();
       if (normalizeGuess(secret, config.mode) === undefined) throw new Error("Secret provider returned an invalid secret.");
       return {
         players,

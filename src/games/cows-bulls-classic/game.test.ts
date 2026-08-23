@@ -13,6 +13,12 @@ function play(state: ReturnType<ReturnType<typeof createCowsBullsClassicGame>["c
 }
 
 describe("Cows & Bulls Classic", () => {
+  it("generates a valid dictionary secret for word mode by default", () => {
+    const game = createCowsBullsClassicGame({ mode: "word", maxAttempts: 8 });
+    const state = game.createInitialState(solo, context);
+    expect(state.secret).toMatch(/^[A-Z]{5}$/);
+  });
+
   it("creates four distinct digits without a leading zero", () => {
     for (let count = 0; count < 25; count += 1) {
       const secret = createNumericSecret();
