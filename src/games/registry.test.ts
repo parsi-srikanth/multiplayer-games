@@ -1,27 +1,32 @@
 import { describe, expect, it } from "vitest";
+import type { GameDefinition } from "../shared/game-contract";
 import { GameRegistry } from "./registry";
 
-const stubGame = {
-  id: "stub",
-  name: "Stub",
-  description: "Test game",
-  minimumPlayers: 2,
-  maximumPlayers: 4,
+interface StubState { readonly done: boolean }
+const stubGame: GameDefinition<StubState, { readonly type: "finish" }, StubState> = {
+  metadata: { id: "stub", name: "Stub", description: "Test game", minimumPlayers: 2, maximumPlayers: 4 },
+  createInitialState: () => ({ done: false }),
+  validateCommand: (value): value is { readonly type: "finish" } =>
+    typeof value === "object" && value !== null && "type" in value && value.type === "finish",
+  applyCommand: () => ({ accepted: true, state: { done: true } }),
+  projectState: (state) => state,
+  isComplete: (state) => state.done,
+  getScores: () => ({}),
 };
 
 describe("GameRegistry", () => {
-  it("registers and lists independent game modules", () => {
+  it("registers and adapts independent game modules", () => {
     const registry = new GameRegistry();
     registry.register(stubGame);
-    expect(registry.get("stub")).toBe(stubGame);
-    expect(registry.list()).toEqual([stubGame]);
+    expect(registry.get("stub")?.metadata).toBe(stubGame.metadata);
+    expect(registry.list()).toEqual([stubGame.metadata]);
+    expect(registry.get("stub")?.applyCommand({ done: false }, { type: "finish" }, "p1", "ABCDE", 1))
+      .toMatchObject({ accepted: true, state: { done: true } });
   });
 
   it("rejects duplicate game identifiers", () => {
     const registry = new GameRegistry();
     registry.register(stubGame);
-    expect(() => {
-      registry.register(stubGame);
-    }).toThrow("already registered");
+    expect(() => { registry.register(stubGame); }).toThrow("already registered");
   });
 });

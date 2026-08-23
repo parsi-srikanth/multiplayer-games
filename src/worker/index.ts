@@ -27,7 +27,10 @@ function internalRequest(request: Request, roomId: string, suffix: "_create" | "
 export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url); const origin = request.headers.get("Origin");
-    if (!isAllowedOrigin(origin)) return jsonError(403, "Origin is not allowed.", null);
+    const protectedMutation = (url.pathname === "/api/rooms" && request.method === "POST") || roomIdFromPath(url.pathname) !== undefined;
+    if (url.pathname.startsWith("/api/") && origin !== null && !isAllowedOrigin(origin, url.hostname))
+      return jsonError(403, "Origin is not allowed.", null);
+    if (protectedMutation && origin === null) return jsonError(403, "An allowed Origin header is required.", null);
     if (request.method === "OPTIONS" && url.pathname.startsWith("/api/")) {
       return new Response(null, { status: 204, headers: { ...corsHeaders(origin),
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type",
@@ -35,6 +38,14 @@ export default {
     }
     if (url.pathname === "/api/health" && request.method === "GET") return Response.json({ status: "ok" }, { headers: corsHeaders(origin) });
     if (url.pathname === "/api/rooms" && request.method === "POST") {
+      const rateLimitKey = request.headers.get("CF-Connecting-IP") ?? "unknown-client";
+      try {
+        const limit = await env.ROOM_CREATION_LIMITER.limit({ key: rateLimitKey });
+        if (!limit.success) return Response.json(
+          { error: "Room creation is temporarily limited. Solo play remains available.", code: "room_creation_limited" },
+          { status: 429, headers: { ...corsHeaders(origin), "Retry-After": "60" } },
+        );
+      } catch { return multiplayerUnavailable(origin); }
       try {
         for (let attempt = 0; attempt < 12; attempt += 1) {
           const code = generateRoomCode();

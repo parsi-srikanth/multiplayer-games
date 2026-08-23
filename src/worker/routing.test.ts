@@ -17,9 +17,12 @@ describe("room routing and edge policy", () => {
     expect(isWebSocketUpgrade(new Request("https://example.test", { headers: { Upgrade: "websocket" } }))).toBe(true);
     expect(isWebSocketUpgrade(new Request("https://example.test", { method: "POST", headers: { Upgrade: "websocket" } }))).toBe(false);
   });
-  it.each(["https://games.srikanthparsi.com", "http://localhost:5173", "https://127.0.0.1:8787"])("allows production and local origin %s", (origin) => {
-    expect(isAllowedOrigin(origin)).toBe(true);
-  });
+  it("allows the canonical production origin", () => { expect(isAllowedOrigin("https://games.srikanthparsi.com")).toBe(true); });
+  it.each([["http://localhost:5173", "localhost"], ["https://127.0.0.1:8787", "127.0.0.1"]])(
+    "allows local origin %s only for local request host %s", (origin, host) => {
+      expect(isAllowedOrigin(origin, host)).toBe(true);
+      expect(isAllowedOrigin(origin, "games.srikanthparsi.com")).toBe(false);
+    });
   it.each(["https://evil.example", "https://games.srikanthparsi.com.evil.example", "null", "not a url"])("rejects origin %s", (origin) => {
     expect(isAllowedOrigin(origin)).toBe(false);
   });

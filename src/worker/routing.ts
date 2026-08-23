@@ -26,11 +26,14 @@ export function generateRoomCode(randomBytes: (length: number) => Uint8Array = s
   }
   return output.join("");
 }
-export function isAllowedOrigin(origin: string | null): boolean {
-  if (origin === null) return true;
+export function isAllowedOrigin(origin: string | null, requestHostname = "games.srikanthparsi.com"): boolean {
+  if (origin === null) return false;
   if (origin === "https://games.srikanthparsi.com") return true;
   try {
     const url = new URL(origin);
-    return (url.protocol === "http:" || url.protocol === "https:") && (url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]");
+    const localOrigin = (url.protocol === "http:" || url.protocol === "https:") &&
+      (url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]");
+    const localRequest = requestHostname === "localhost" || requestHostname === "127.0.0.1" || requestHostname === "[::1]";
+    return localOrigin && localRequest;
   } catch { return false; }
 }

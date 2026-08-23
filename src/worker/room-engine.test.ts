@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { admitPlayer, advanceStarting, applyRoomMessage, createRoomState, disconnectPlayer,
-  expireDisconnectedPlayers, isRoomExpired, projectRoom, reconnectPlayer, RECONNECT_GRACE_MS,
+import { admitPlayer, applyRoomMessage, createRoomState, disconnectPlayer, expireDisconnectedPlayers,
+  gameProjectionFor, isRoomExpired, projectRoom, reconnectPlayer, RECONNECT_GRACE_MS,
   ROOM_INACTIVE_TTL_MS, roomExpiresAt, sanitizeDisplayName } from "./room-engine";
 import type { RoomState } from "./room-engine";
 
@@ -12,6 +12,15 @@ function roomWithPlayers(count = 2): RoomState {
     expect(result.ok).toBe(true);
   }
   return state;
+}
+function command(state: RoomState, actor: string, value: unknown, now: number): void {
+  const result = applyRoomMessage(state, actor, { type: "game:command", command: value }, now);
+  expect(result).toMatchObject({ ok: true, changed: true });
+}
+function startChallenge(state: RoomState, now = 10): void {
+  expect(applyRoomMessage(state, "p1", { type: "room:select_game", gameId: "cows-bulls-challenge" }, now).ok).toBe(true);
+  expect(applyRoomMessage(state, "p1", { type: "room:start" }, now + 1).ok).toBe(true);
+  expect(state.phase).toBe("playing");
 }
 
 describe("authoritative room engine", () => {
@@ -33,49 +42,61 @@ describe("authoritative room engine", () => {
   it("assigns the first player as host and enforces four-player capacity", () => {
     const state = roomWithPlayers(4);
     expect(state.hostId).toBe("p1");
-    expect(admitPlayer(state, { id: "p5", displayName: "Five", tokenHash: "t5", now: 8 })).toMatchObject({ ok: false, code: "room_full" });
+    expect(admitPlayer(state, { id: "p5", displayName: "Five", tokenHash: "t5", now: 8 }))
+      .toMatchObject({ ok: false, code: "room_full" });
   });
-  it("reconnects during grace and expires/host-transfers after grace", () => {
+  it("reconnects during grace and elects only connected hosts", () => {
+    const state = roomWithPlayers(3);
+    expect(disconnectPlayer(state, "p2", 100).ok).toBe(true);
+    expect(disconnectPlayer(state, "p1", 101).ok).toBe(true);
+    expect(state.hostId).toBe("p3");
+    expect(reconnectPlayer(state, "token-2", 200)).toMatchObject({ ok: true, value: { id: "p2", connected: true } });
+    expect(state.hostId).toBe("p3");
+    expect(expireDisconnectedPlayers(state, 101 + RECONNECT_GRACE_MS - 1)).toEqual([]);
+    expect(expireDisconnectedPlayers(state, 101 + RECONNECT_GRACE_MS)).toEqual(["p1"]);
+  });
+  it("rejects unknown games and derives results only from validated game commands", () => {
     const state = roomWithPlayers();
-    expect(disconnectPlayer(state, "p1", 100).ok).toBe(true);
-    expect(projectRoom(state, "p2").players[0]?.presence).toBe("reconnecting");
-    expect(reconnectPlayer(state, "token-1", 200)).toMatchObject({ ok: true, value: { id: "p1", connected: true } });
-    disconnectPlayer(state, "p1", 300);
-    expect(expireDisconnectedPlayers(state, 300 + RECONNECT_GRACE_MS - 1)).toEqual([]);
-    expect(expireDisconnectedPlayers(state, 300 + RECONNECT_GRACE_MS)).toEqual(["p1"]);
-    expect(state.hostId).toBe("p2");
+    expect(applyRoomMessage(state, "p2", { type: "room:select_game", gameId: "cows-bulls-challenge" }, 10))
+      .toMatchObject({ ok: false, code: "forbidden" });
+    expect(applyRoomMessage(state, "p1", { type: "room:select_game", gameId: "not-real" }, 11))
+      .toMatchObject({ ok: false, code: "game_not_configured" });
+    startChallenge(state, 12);
+    command(state, "p1", { type: "set-secret", word: "APPLE" }, 14);
+    expect(JSON.stringify(gameProjectionFor(state, "p2"))).not.toContain("APPLE");
+    command(state, "p2", { type: "set-secret", word: "GRAPE" }, 15);
+    command(state, "p1", { type: "guess", targetPlayerId: "p2", word: "GRAPE" }, 16);
+    command(state, "p2", { type: "guess", targetPlayerId: "p1", word: "APPLE" }, 17);
+    expect(state.phase).toBe("results");
+    expect(state.results).toEqual([
+      { playerId: "p1", score: 160, rank: 1 },
+      { playerId: "p2", score: 160, rank: 1 },
+    ]);
+    expect(state.players.map((item) => item.sessionScore)).toEqual([160, 160]);
+    expect(JSON.stringify(gameProjectionFor(state, "p2"))).toContain("APPLE");
+    expect(applyRoomMessage(state, "p1", { type: "room:return_lobby" }, 18).ok).toBe(true);
+    expect(state.privateGameState).toBeNull();
+    expect(state.players.map((item) => item.sessionScore)).toEqual([160, 160]);
   });
-  it("enforces host controls and Lobby -> Starting -> Playing -> Results -> Lobby", () => {
+  it("supports an authoritative rematch while retaining session scores", () => {
     const state = roomWithPlayers();
-    expect(applyRoomMessage(state, "p2", { type: "room:select_game", gameId: "quiz" }, 10)).toMatchObject({ ok: false, code: "forbidden" });
-    expect(applyRoomMessage(state, "p1", { type: "room:start" }, 11)).toMatchObject({ ok: false, code: "invalid_transition" });
-    expect(applyRoomMessage(state, "p1", { type: "room:select_game", gameId: "quiz" }, 12).ok).toBe(true);
-    expect(applyRoomMessage(state, "p1", { type: "room:start" }, 13).ok).toBe(true);
-    expect(state.phase).toBe("starting"); expect(advanceStarting(state, 14)).toBe(true); expect(state.phase).toBe("playing");
-    expect(applyRoomMessage(state, "p2", { type: "game:score", playerId: "p2", delta: 5 }, 15)).toMatchObject({ ok: false, code: "forbidden" });
-    expect(applyRoomMessage(state, "p1", { type: "game:score", playerId: "p2", delta: 5 }, 16).ok).toBe(true);
-    expect(applyRoomMessage(state, "p1", { type: "game:score", playerId: "p1", delta: 2 }, 17).ok).toBe(true);
-    expect(applyRoomMessage(state, "p1", { type: "game:finish" }, 18).ok).toBe(true);
-    expect(state.phase).toBe("results"); expect(state.results).toEqual([{ playerId: "p2", score: 5, rank: 1 }, { playerId: "p1", score: 2, rank: 2 }]);
-    expect(state.players.map((item) => item.sessionScore)).toEqual([2, 5]);
-    expect(applyRoomMessage(state, "p1", { type: "room:return_lobby" }, 19).ok).toBe(true);
-    expect(state.phase).toBe("lobby"); expect(state.players.map((item) => item.gameScore)).toEqual([0, 0]);
-    expect(state.players.map((item) => item.sessionScore)).toEqual([2, 5]);
+    startChallenge(state);
+    command(state, "p1", { type: "set-secret", word: "APPLE" }, 12);
+    command(state, "p2", { type: "set-secret", word: "GRAPE" }, 13);
+    command(state, "p1", { type: "guess", targetPlayerId: "p2", word: "GRAPE" }, 14);
+    command(state, "p2", { type: "guess", targetPlayerId: "p1", word: "APPLE" }, 15);
+    expect(applyRoomMessage(state, "p1", { type: "room:rematch" }, 16).ok).toBe(true);
+    expect(state.phase).toBe("playing");
+    expect(state.players.map((item) => item.sessionScore)).toEqual([160, 160]);
+    expect(gameProjectionFor(state, "p1")).toMatchObject({ phase: "secrets" });
   });
-  it("supports rematch while retaining cumulative session scores", () => {
-    const state = roomWithPlayers(1);
-    applyRoomMessage(state, "p1", { type: "room:select_game", gameId: "quiz" }, 10);
-    applyRoomMessage(state, "p1", { type: "room:start" }, 11); advanceStarting(state, 12);
-    applyRoomMessage(state, "p1", { type: "game:score", playerId: "p1", delta: 9 }, 13);
-    applyRoomMessage(state, "p1", { type: "game:finish" }, 14);
-    expect(applyRoomMessage(state, "p1", { type: "room:rematch" }, 15).ok).toBe(true);
-    expect(state.phase).toBe("starting"); expect(state.players[0]?.sessionScore).toBe(9); expect(state.players[0]?.gameScore).toBe(0);
-  });
-  it("never exposes reconnect credentials or server-private game state", () => {
-    const state = roomWithPlayers(); state.privateGameState = { hands: { p1: ["secret"] } };
+  it("never exposes reconnect credentials or unprojected private game state", () => {
+    const state = roomWithPlayers();
+    state.privateGameState = { hands: { p1: ["secret"] } };
     const projected = projectRoom(state, "p1", { hand: ["viewer-card"] });
     expect(projected.game).toEqual({ hand: ["viewer-card"] });
-    expect(JSON.stringify(projected)).not.toContain("token-1"); expect(JSON.stringify(projected)).not.toContain("secret");
+    expect(JSON.stringify(projected)).not.toContain("token-1");
+    expect(JSON.stringify(projected)).not.toContain("secret");
     expect(projected.viewer).toEqual({ playerId: "p1", isHost: true });
   });
 });

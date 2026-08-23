@@ -10,9 +10,9 @@
     "dev": "vite",
     "dev:worker": "wrangler dev",
     "build": "vite build",
-    "typecheck": "tsc -p tsconfig.client.json && tsc -p tsconfig.worker.json && tsc -p tsconfig.test.json && tsc -p tsconfig.tools.json",
+    "typecheck": "tsc -p tsconfig.client.json && tsc -p tsconfig.worker.json && tsc -p tsconfig.test.json && tsc -p tsconfig.worker-test.json && tsc -p tsconfig.tools.json",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run && vitest run --config vitest.worker.config.ts",
     "test:watch": "vitest",
     "cf:typegen": "wrangler types",
     "deploy:dry-run": "npm run build && wrangler deploy --dry-run",
@@ -23,6 +23,7 @@
     "react-dom": "latest"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
     "@cloudflare/workers-types": "latest",
     "@eslint/js": "latest",
     "@testing-library/jest-dom": "^7.0.1",

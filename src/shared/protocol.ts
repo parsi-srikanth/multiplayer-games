@@ -15,7 +15,7 @@ export function isClientMessageWithinLimit(value: string): boolean {
 export const MAX_DISPLAY_NAME_LENGTH = 24;
 export const MAX_GAME_ID_LENGTH = 32;
 export const MAX_RECONNECT_TOKEN_LENGTH = 128;
-export const MAX_SCORE_DELTA = 10_000;
+
 
 export type RoomPhase = "lobby" | "starting" | "playing" | "results";
 export type Presence = "connected" | "reconnecting";
@@ -29,19 +29,14 @@ export interface ClientHelloMessage {
 export interface ClientPingMessage { readonly type: "client:ping"; readonly nonce: string }
 export interface SelectGameMessage { readonly type: "room:select_game"; readonly gameId: GameId }
 export interface StartGameMessage { readonly type: "room:start" }
-export interface RecordScoreMessage {
-  readonly type: "game:score";
-  readonly playerId: PlayerId;
-  readonly delta: number;
-}
-export interface FinishGameMessage { readonly type: "game:finish" }
+
 export interface ReturnLobbyMessage { readonly type: "room:return_lobby" }
 export interface RematchMessage { readonly type: "room:rematch" }
 export interface LeaveMessage { readonly type: "room:leave" }
 export interface GameCommandMessage { readonly type: "game:command"; readonly command: unknown }
 
 export type ClientMessage = ClientHelloMessage | ClientPingMessage | SelectGameMessage |
-  StartGameMessage | RecordScoreMessage | FinishGameMessage | ReturnLobbyMessage |
+  StartGameMessage | ReturnLobbyMessage |
   RematchMessage | LeaveMessage | GameCommandMessage;
 
 export interface PlayerProjection {
@@ -82,7 +77,7 @@ export interface GameStateMessage {
 export interface ServerErrorMessage {
   readonly type: "server:error";
   readonly code: "invalid_message" | "not_admitted" | "forbidden" | "invalid_transition" |
-    "room_full" | "rate_limited" | "game_not_configured" | "internal_error";
+    "room_full" | "rate_limited" | "game_not_configured" | "capacity_unavailable" | "internal_error";
   readonly message: string;
 }
 export type ServerMessage = ServerHelloMessage | ServerPongMessage | RoomStateMessage |
@@ -123,13 +118,10 @@ export function parseClientMessage(value: string): ClientMessage | undefined {
       return exactKeys(parsed, ["type", "nonce"]) && boundedString(parsed.nonce, 0, 128) ? { type: parsed.type, nonce: parsed.nonce } : undefined;
     case "room:select_game":
       return exactKeys(parsed, ["type", "gameId"]) && boundedString(parsed.gameId, 1, MAX_GAME_ID_LENGTH) && /^[a-z0-9-]+$/.test(parsed.gameId) ? { type: parsed.type, gameId: parsed.gameId } : undefined;
-    case "game:score":
-      return exactKeys(parsed, ["type", "playerId", "delta"]) && boundedString(parsed.playerId, 1, 64) &&
-        typeof parsed.delta === "number" && Number.isSafeInteger(parsed.delta) && Math.abs(parsed.delta) <= MAX_SCORE_DELTA
-        ? { type: parsed.type, playerId: parsed.playerId, delta: parsed.delta } : undefined;
+
     case "game:command":
       return exactKeys(parsed, ["type", "command"]) && isJsonValue(parsed.command) ? { type: parsed.type, command: parsed.command } : undefined;
-    case "room:start": case "game:finish": case "room:return_lobby": case "room:rematch": case "room:leave":
+    case "room:start": case "room:return_lobby": case "room:rematch": case "room:leave":
       return exactKeys(parsed, ["type"]) ? { type: parsed.type } : undefined;
     default: return undefined;
   }

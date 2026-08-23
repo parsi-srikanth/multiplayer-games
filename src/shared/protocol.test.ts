@@ -12,7 +12,7 @@ const validMessages = [
   { type: "client:hello", protocolVersion: PROTOCOL_VERSION, displayName: " Ada " },
   { type: "client:hello", protocolVersion: PROTOCOL_VERSION, displayName: "Ada", reconnectToken: "x".repeat(32) },
   { type: "client:ping", nonce: "abc" }, { type: "room:select_game", gameId: "word-race" },
-  { type: "room:start" }, { type: "game:score", playerId: "p1", delta: 5 }, { type: "game:finish" },
+  { type: "room:start" },
   { type: "room:return_lobby" }, { type: "room:rematch" }, { type: "room:leave" },
   { type: "game:command", command: { move: 1 } },
 ] as const;
@@ -23,7 +23,7 @@ describe("versioned multiplayer protocol", () => {
     JSON.stringify({ type: "client:hello", protocolVersion: 999, displayName: "Ada" }),
     JSON.stringify({ type: "client:hello", protocolVersion: PROTOCOL_VERSION, displayName: "", extra: true }),
     JSON.stringify({ type: "client:ping", nonce: 12 }), JSON.stringify({ type: "room:select_game", gameId: "UPPER" }),
-    JSON.stringify({ type: "game:score", playerId: "p1", delta: 10_001 }),
+    JSON.stringify({ type: "game:score", playerId: "p1", delta: 5 }), JSON.stringify({ type: "game:finish" }),
     '{"type":"game:command","command":{"value":1e999}}', JSON.stringify({ type: "unknown" }),
   ])("rejects invalid and unbounded message %s", (message) => { expect(parseClientMessage(message)).toBeUndefined(); });
   it("rejects payloads over the byte limit", () => {
