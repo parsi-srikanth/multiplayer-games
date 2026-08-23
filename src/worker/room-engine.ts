@@ -95,6 +95,12 @@ function removePlayer(state: RoomState, playerId: string, now: number): boolean 
   if (index < 0) return false;
   state.players.splice(index, 1);
   if (state.hostId === playerId || state.hostId === null) electHost(state);
+  if (state.phase === "playing" || state.phase === "starting") {
+    state.phase = "lobby";
+    state.results = null;
+    state.privateGameState = null;
+    for (const item of state.players) item.gameScore = 0;
+  }
   if (state.players.length === 0) {
     state.phase = "lobby"; state.selectedGameId = null; state.results = null; state.privateGameState = null;
   }

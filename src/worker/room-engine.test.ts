@@ -14,7 +14,7 @@ function roomWithPlayers(count = 2): RoomState {
   return state;
 }
 function command(state: RoomState, actor: string, value: unknown, now: number): void {
-  const result = applyRoomMessage(state, actor, { type: "game:command", command: value }, now);
+  const result = applyRoomMessage(state, actor, { type: "game:command", commandId: `cmd-${String(now)}`, command: value }, now);
   expect(result).toMatchObject({ ok: true, changed: true });
 }
 function startChallenge(state: RoomState, now = 10): void {
@@ -80,10 +80,19 @@ describe("authoritative room engine", () => {
       const state = roomWithPlayers(1);
       expect(applyRoomMessage(state, "p1", { type: "room:select_game", gameId }, 10)).toMatchObject({ ok: true });
       expect(applyRoomMessage(state, "p1", { type: "room:start" }, 11)).toMatchObject({ ok: true });
-      expect(applyRoomMessage(state, "p1", { type: "game:command", command: gameCommand }, 12)).toMatchObject({ ok: true });
+      expect(applyRoomMessage(state, "p1", { type: "game:command", commandId: `cmd-${gameId}`, command: gameCommand }, 12)).toMatchObject({ ok: true });
       expect(gameProjectionFor(state, "p1")).toEqual(expect.objectContaining({ phase: expect.any(String) }));
     }
   });
+  it("aborts an active game when a player permanently leaves", () => {
+    const state = roomWithPlayers();
+    startChallenge(state);
+    command(state, "p1", { type: "set-secret", word: "APPLE" }, 11);
+    expect(applyRoomMessage(state, "p2", { type: "room:leave" }, 12)).toMatchObject({ ok: true, changed: true });
+    expect(state).toMatchObject({ phase: "lobby", privateGameState: null, results: null });
+    expect(state.players.map((item) => item.id)).toEqual(["p1"]);
+  });
+
   it("rejects unknown games and derives results only from validated game commands", () => {
     const state = roomWithPlayers();
     expect(applyRoomMessage(state, "p2", { type: "room:select_game", gameId: "cows-bulls-challenge" }, 10))

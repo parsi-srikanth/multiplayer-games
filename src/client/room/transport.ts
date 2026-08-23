@@ -1,4 +1,5 @@
 import { CloudflareRoomTransport } from "./cloudflare-transport";
+import { gameRegistry } from "../../games/registry";
 
 export type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "offline";
 export type RoomPhase = "lobby" | "playing" | "results";
@@ -55,6 +56,7 @@ function normalizeRoomId(roomId: string): string {
 export class MockRoomTransport implements RoomTransport {
   readonly #rooms = new Map<string, RoomSnapshot>();
   readonly #listeners = new Map<string, Set<(snapshot: RoomSnapshot) => void>>();
+  readonly #gameStates = new Map<string, unknown>();
 
   createRoom(input: CreateRoomInput): Promise<RoomSnapshot> {
     const roomId = DEFAULT_ROOM_ID;
@@ -125,21 +127,51 @@ export class MockRoomTransport implements RoomTransport {
   }
 
   setPhase(roomId: string, phase: RoomPhase): Promise<void> {
+    if (phase === "playing") {
+      const snapshot = this.getSnapshot(roomId);
+      if (snapshot === undefined) return Promise.reject(new Error("Room not found."));
+      const game = gameRegistry.get(snapshot.gameId);
+      if (game !== undefined) {
+        if (snapshot.players.length < game.metadata.minimumPlayers || snapshot.players.length > game.metadata.maximumPlayers)
+          return Promise.reject(new Error(`This game requires ${String(game.metadata.minimumPlayers)}–${String(game.metadata.maximumPlayers)} players.`));
+        const state = game.createInitialState(snapshot.players.map((player) => ({ id: player.id, displayName: player.displayName })), snapshot.id, Date.now());
+        this.#gameStates.set(snapshot.id, state);
+        this.#update(roomId, (room) => ({ ...room, phase, gameState: game.projectState(state, room.localPlayerId) }));
+        return Promise.resolve();
+      }
+    }
     this.#update(roomId, (snapshot) => ({ ...snapshot, phase }));
     return Promise.resolve();
   }
 
   rematch(roomId: string): Promise<void> {
-    return this.setPhase(roomId, "lobby");
+    return this.setPhase(roomId, "playing");
   }
 
   sendGameCommand(roomId: string, command: unknown): Promise<void> {
-    this.#update(roomId, (snapshot) => ({ ...snapshot, gameState: command }));
+    const snapshot = this.getSnapshot(roomId);
+    if (snapshot === undefined) return Promise.reject(new Error("Room not found."));
+    const game = gameRegistry.get(snapshot.gameId);
+    const state = this.#gameStates.get(snapshot.id);
+    if (game === undefined || state === undefined) {
+      this.#update(roomId, (room) => ({ ...room, gameState: command }));
+      return Promise.resolve();
+    }
+    const transition = game.applyCommand(state, command, snapshot.localPlayerId, snapshot.id, Date.now());
+    if (!transition.accepted) return Promise.reject(new Error(transition.reason));
+    this.#gameStates.set(snapshot.id, transition.state);
+    const complete = game.isComplete(transition.state);
+    const scores = complete ? game.scores(transition.state) : {};
+    this.#update(roomId, (room) => ({ ...room, phase: complete ? "results" : "playing",
+      gameState: game.projectState(transition.state, room.localPlayerId),
+      players: room.players.map((player) => ({ ...player, score: scores[player.id] ?? player.score })) }));
     return Promise.resolve();
   }
 
   leave(roomId: string): Promise<void> {
-    this.#rooms.delete(normalizeRoomId(roomId));
+    const normalized = normalizeRoomId(roomId);
+    this.#rooms.delete(normalized);
+    this.#gameStates.delete(normalized);
     return Promise.resolve();
   }
 

@@ -13,6 +13,12 @@ interface SnapshotWaiter {
   readonly timeout: ReturnType<typeof setTimeout>;
 }
 
+interface CommandWaiter {
+  readonly resolve: () => void;
+  readonly reject: (reason: Error) => void;
+  readonly timeout: ReturnType<typeof setTimeout>;
+}
+
 interface Connection {
   readonly code: string;
   displayName: string;
@@ -22,6 +28,7 @@ interface Connection {
   reconnectToken?: string;
   readonly listeners: Set<(snapshot: RoomSnapshot) => void>;
   readonly waiters: Set<SnapshotWaiter>;
+  readonly commandWaiters: Map<string, CommandWaiter>;
   reconnectAttempt: number;
   intentionallyClosed: boolean;
 }
@@ -131,7 +138,22 @@ export class CloudflareRoomTransport implements RoomTransport {
   }
 
   async sendGameCommand(roomId: string, command: unknown): Promise<void> {
-    await this.#sendAndWait(roomId, { type: "game:command", command }, () => true);
+    const connection = this.#requiredConnection(roomId);
+    const commandId = crypto.randomUUID();
+    const acknowledgement = new Promise<void>((resolve, reject) => {
+      const waiter: CommandWaiter = {
+        resolve, reject,
+        timeout: setTimeout(() => { connection.commandWaiters.delete(commandId); reject(new Error("The server did not acknowledge this command.")); }, RESPONSE_TIMEOUT_MS),
+      };
+      connection.commandWaiters.set(commandId, waiter);
+    });
+    try { this.#send(connection, { type: "game:command", commandId, command }); }
+    catch (reason) {
+      const waiter = connection.commandWaiters.get(commandId);
+      if (waiter !== undefined) { clearTimeout(waiter.timeout); connection.commandWaiters.delete(commandId); }
+      throw reason;
+    }
+    await acknowledgement;
   }
 
   leave(roomId: string): Promise<void> {
@@ -144,7 +166,7 @@ export class CloudflareRoomTransport implements RoomTransport {
   }
 
   #newConnection(code: string, displayName: string, reconnectToken?: string): Connection {
-    return { code, displayName, ...(reconnectToken === undefined ? {} : { reconnectToken }), listeners: new Set(), waiters: new Set(), reconnectAttempt: 0, intentionallyClosed: false };
+    return { code, displayName, ...(reconnectToken === undefined ? {} : { reconnectToken }), listeners: new Set(), waiters: new Set(), commandWaiters: new Map(), reconnectAttempt: 0, intentionallyClosed: false };
   }
 
   async #connect(rawCode: string, displayName: string): Promise<RoomSnapshot> {
@@ -191,10 +213,13 @@ export class CloudflareRoomTransport implements RoomTransport {
             delete connection.reconnectToken;
             localStorage.removeItem(`${RECONNECT_PREFIX}${connection.code}`);
           }
-          this.#rejectWaiters(connection, new Error(message.message));
-          if (!settled) { settled = true; clearTimeout(timeout); reject(new Error(message.message)); }
+          const reason = new Error(message.message);
+          if (message.commandId !== undefined) this.#rejectCommand(connection, message.commandId, reason);
+          else this.#rejectWaiters(connection, reason);
+          if (!settled) { settled = true; clearTimeout(timeout); reject(reason); }
           return;
         }
+        if (message.type === "server:ack") { this.#resolveCommand(connection, message.commandId); return; }
         if (message.type === "room:state") {
           connection.snapshot = toSnapshot(message.room);
           connection.reconnectAttempt = 0;
@@ -208,6 +233,7 @@ export class CloudflareRoomTransport implements RoomTransport {
       socket.addEventListener("close", (event) => {
         clearTimeout(timeout);
         if (!settled) { settled = true; reject(new Error(event.reason || "Room connection closed.")); }
+        this.#rejectWaiters(connection, new Error(event.reason || "Room connection closed."));
         if (connection.intentionallyClosed || event.code === 1000 || event.code === 4001 || event.code === 1008) {
           this.#setConnectionStatus(connection, "offline");
           return;
@@ -269,6 +295,27 @@ export class CloudflareRoomTransport implements RoomTransport {
       waiter.reject(reason);
     }
     connection.waiters.clear();
+    for (const [commandId, waiter] of connection.commandWaiters) {
+      clearTimeout(waiter.timeout);
+      connection.commandWaiters.delete(commandId);
+      waiter.reject(reason);
+    }
+  }
+
+  #resolveCommand(connection: Connection, commandId: string): void {
+    const waiter = connection.commandWaiters.get(commandId);
+    if (waiter === undefined) return;
+    clearTimeout(waiter.timeout);
+    connection.commandWaiters.delete(commandId);
+    waiter.resolve();
+  }
+
+  #rejectCommand(connection: Connection, commandId: string, reason: Error): void {
+    const waiter = connection.commandWaiters.get(commandId);
+    if (waiter === undefined) return;
+    clearTimeout(waiter.timeout);
+    connection.commandWaiters.delete(commandId);
+    waiter.reject(reason);
   }
 
   #setConnectionStatus(connection: Connection, status: RoomSnapshot["connection"]): void {
