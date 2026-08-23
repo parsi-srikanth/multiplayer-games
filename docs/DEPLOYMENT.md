@@ -75,7 +75,13 @@ npm run cf:typegen
 npm run check
 npm run deploy:dry-run
 npx wrangler check startup
-npx wrangler versions list --json > "/tmp/parsi-games-versions-before-${RELEASE_SHA}.json"
+VERSIONS_BEFORE="/tmp/parsi-games-versions-before-${RELEASE_SHA}.json"
+if npx wrangler versions list --json > "$VERSIONS_BEFORE"; then
+  echo "Captured the existing versions for rollback."
+else
+  printf '[]\n' > "$VERSIONS_BEFORE"
+  echo "No prior Worker version exists; this is the first deployment and rollback is unavailable."
+fi
 npx wrangler deploy --message "release ${RELEASE_SHA}"
 npx wrangler versions list --json > "/tmp/parsi-games-versions-after-${RELEASE_SHA}.json"
 ```
@@ -84,7 +90,13 @@ Do not deploy if `main` moved, checks fail, Wrangler targets the wrong account, 
 
 ## Live verification
 
-Run immediately after deploy from a network outside the developer machine:
+Start a live error tail in one shell before exercising production:
+
+```bash
+npx wrangler tail parsi-games --status error
+```
+
+Keep that tail active. In a second shell, run immediately after deploy from a network outside the developer machine:
 
 ```bash
 BASE_URL=https://games.srikanthparsi.com WS_URL=wss://games.srikanthparsi.com \
@@ -114,12 +126,13 @@ ws.addEventListener("error", () => process.exit(1));
 ws.addEventListener("close", ({ code }) => { if (!hello || code !== 1000) process.exit(1); console.log("live websocket smoke passed"); });
 NODE
   '
-npx wrangler tail parsi-games --status error
 ```
 
-Tail long enough to include the smoke connection and close. Stop with `Ctrl-C` after confirming no related errors. Separately verify in a mobile browser that the page loads over HTTPS without certificate or mixed-content warnings.
+Keep the first shell's tail active throughout the smoke connection and close. Stop it with `Ctrl-C` after confirming no related errors. Separately verify in a mobile browser that the page loads over HTTPS without certificate or mixed-content warnings.
 
 ## Rollback
+
+Rollback is available only when the pre-release version capture contains a known-good version. On the first deployment there is no prior Worker version to restore. If that initial release fails, remove or disable the new custom-domain route when safe, then use a reviewed forward-fix; do not invent a version ID or assume Durable Object data can be rolled back.
 
 Choose the known-good version ID captured before release. Rollback changes Worker code immediately across routes, but **does not roll back Durable Object storage, class migrations, bindings, DNS, or other resources**.
 
