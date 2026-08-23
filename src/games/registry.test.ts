@@ -21,6 +21,7 @@ describe("GameRegistry", () => {
       "cows-bulls-classic",
       "word-race",
       "tic-tac-toe-plus",
+      "dots-boxes",
     ]);
   });
 
