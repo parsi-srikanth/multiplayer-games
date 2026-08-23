@@ -76,11 +76,20 @@ npm run check
 npm run deploy:dry-run
 npx wrangler check startup
 VERSIONS_BEFORE="/tmp/parsi-games-versions-before-${RELEASE_SHA}.json"
-if npx wrangler versions list --json > "$VERSIONS_BEFORE"; then
+VERSIONS_ERROR="/tmp/parsi-games-versions-before-${RELEASE_SHA}.stderr"
+if npx wrangler versions list --json > "$VERSIONS_BEFORE" 2> "$VERSIONS_ERROR"; then
+  rm -f "$VERSIONS_ERROR"
   echo "Captured the existing versions for rollback."
 else
-  printf '[]\n' > "$VERSIONS_BEFORE"
-  echo "No prior Worker version exists; this is the first deployment and rollback is unavailable."
+  versions_status=$?
+  if grep -Eq 'workers\.api\.error\.script_not_found|\[code: 10090\]' "$VERSIONS_ERROR"; then
+    printf '[]\n' > "$VERSIONS_BEFORE"
+    echo "Wrangler positively reported that no prior Worker exists; rollback is unavailable for this first deployment."
+  else
+    cat "$VERSIONS_ERROR" >&2
+    echo "Could not verify existing Worker versions; aborting without deployment." >&2
+    exit "$versions_status"
+  fi
 fi
 npx wrangler deploy --message "release ${RELEASE_SHA}"
 npx wrangler versions list --json > "/tmp/parsi-games-versions-after-${RELEASE_SHA}.json"
