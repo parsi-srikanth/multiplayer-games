@@ -11,7 +11,7 @@ describe("client game discovery", () => {
       "dots-boxes",
       "memory-match",
       "sudoku-sprint",
-      "tic-tac-toe",
+      "tic-tac-toe-plus",
       "trivia-blitz",
       "word-race",
     ];

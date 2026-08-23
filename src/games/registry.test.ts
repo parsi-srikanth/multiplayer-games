@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GameDefinition } from "../shared/game-contract";
-import { GameRegistry } from "./registry";
+import { GameRegistry, gameRegistry } from "./registry";
 
 interface StubState { readonly done: boolean }
 const stubGame: GameDefinition<StubState, { readonly type: "finish" }, StubState> = {
@@ -15,6 +15,14 @@ const stubGame: GameDefinition<StubState, { readonly type: "finish" }, StubState
 };
 
 describe("GameRegistry", () => {
+  it("registers every implemented authoritative V1 game", () => {
+    expect(gameRegistry.list().map((game) => game.id)).toEqual([
+      "cows-bulls-challenge",
+      "cows-bulls-classic",
+      "word-race",
+    ]);
+  });
+
   it("registers and adapts independent game modules", () => {
     const registry = new GameRegistry();
     registry.register(stubGame);

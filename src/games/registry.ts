@@ -1,5 +1,7 @@
 import type { GameDefinition, GameId, GameMetadata, PlayerId, PlayerView } from "../shared/game-contract";
 import { cowsBullsChallenge } from "./cows-bulls-challenge";
+import { cowsBullsClassic } from "./cows-bulls-classic";
+import { wordRace } from "./word-race";
 
 export interface RuntimeGame {
   readonly metadata: GameMetadata;
@@ -37,3 +39,5 @@ export class GameRegistry {
 
 export const gameRegistry = new GameRegistry();
 gameRegistry.register(cowsBullsChallenge);
+gameRegistry.register(cowsBullsClassic);
+gameRegistry.register(wordRace);

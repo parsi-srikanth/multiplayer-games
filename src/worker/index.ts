@@ -56,7 +56,7 @@ export default {
           const response = await env.ROOMS.getByName(code).fetch(internalRequest(request, code, "_create"));
           if (response.status === 409) continue;
           if (!response.ok) return withCors(response, origin);
-          return Response.json({ code, shareUrl: `${url.origin}/?room=${code}`, connectUrl: `/api/rooms/${code}/connect` },
+          return Response.json({ code, shareUrl: `${url.origin}/join/${code}`, connectUrl: `/api/rooms/${code}/connect` },
             { status: 201, headers: { ...corsHeaders(origin), Location: `/api/rooms/${code}` } });
         }
       } catch { return multiplayerUnavailable(origin); }

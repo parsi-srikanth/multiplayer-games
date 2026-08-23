@@ -14,7 +14,7 @@ const validMessages = [
   { type: "client:ping", nonce: "abc" }, { type: "room:select_game", gameId: "word-race" },
   { type: "room:start" },
   { type: "room:return_lobby" }, { type: "room:rematch" }, { type: "room:leave" },
-  { type: "game:command", command: { move: 1 } },
+  { type: "game:command", commandId: "cmd-1", command: { move: 1 } },
 ] as const;
 
 describe("versioned multiplayer protocol", () => {
@@ -27,7 +27,7 @@ describe("versioned multiplayer protocol", () => {
     '{"type":"game:command","command":{"value":1e999}}', JSON.stringify({ type: "unknown" }),
   ])("rejects invalid and unbounded message %s", (message) => { expect(parseClientMessage(message)).toBeUndefined(); });
   it("rejects payloads over the byte limit", () => {
-    expect(parseClientMessage(JSON.stringify({ type: "game:command", command: "x".repeat(MAX_MESSAGE_BYTES) }))).toBeUndefined();
+    expect(parseClientMessage(JSON.stringify({ type: "game:command", commandId: "cmd-oversized", command: "x".repeat(MAX_MESSAGE_BYTES) }))).toBeUndefined();
   });
   it("serializes server messages", () => {
     expect(serializeServerMessage({ type: "server:pong", nonce: "abc" })).toBe('{"type":"server:pong","nonce":"abc"}');
@@ -36,6 +36,7 @@ describe("versioned multiplayer protocol", () => {
   it("rejects oversized envelopes before parsing", () => {
     const oversized = JSON.stringify({
       type: "game:command",
+      commandId: "cmd-nested",
       command: { nested: { ignored: "x".repeat(MAX_CLIENT_MESSAGE_BYTES) } },
     });
 

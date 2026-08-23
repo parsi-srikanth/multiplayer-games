@@ -163,6 +163,8 @@ export function createCowsBullsClassicGame(
         ...(state.phase === "results" ? { secret: state.secret } : {}),
       };
     },
+    isComplete: (state) => state.phase === "results",
+    getScores: (state) => state.scores,
   };
 }
 

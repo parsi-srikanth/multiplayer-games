@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { clientGames, getClientGame, getGameMetadata } from "./game-framework/catalog";
+import { availableClientGames, clientGames, getClientGame, getGameMetadata, isGameAvailable } from "./game-framework/catalog";
 import { AppLink, navigate, useRoute } from "./router";
-import { MockRoomTransport } from "./room/transport";
+import { HybridRoomTransport } from "./room/transport";
 import type { RoomSnapshot, RoomTransport } from "./room/transport";
 import { DisplayNameForm, GameCard, GamePicker, PageShell, Scoreboard } from "./components/shared";
 
-const defaultTransport = new MockRoomTransport();
+const defaultTransport = new HybridRoomTransport();
 const DISPLAY_NAME_KEY = "parsi-games-display-name";
 
 function useDisplayName(): readonly [string, (name: string) => void] {
@@ -42,7 +42,7 @@ function HomeScreen() {
       <section className="catalog-section" aria-labelledby="games-heading">
         <div className="section-heading"><p className="eyebrow">The game shelf</p><h2 id="games-heading">What are we playing?</h2></div>
         <div className="game-grid">
-          {clientGames.map(({ metadata }) => <GameCard key={metadata.id} game={metadata} action={<AppLink className="card-link" to={`/create?game=${metadata.id}`}><span className="sr-only">Create a room for </span>Play {metadata.name}<span aria-hidden="true"> →</span></AppLink>} />)}
+          {clientGames.map(({ metadata }) => <GameCard key={metadata.id} game={metadata} action={isGameAvailable(metadata.id) ? <AppLink className="card-link" to={`/create?game=${metadata.id}`}><span className="sr-only">Create a room for </span>Play {metadata.name}<span aria-hidden="true"> →</span></AppLink> : <span className="game-meta">Coming soon</span>} />)}
         </div>
       </section>
     </>
@@ -57,7 +57,10 @@ function CreateScreen({ displayName, setDisplayName, transport }: {
   const route = useRoute();
   const solo = route.search.get("mode") === "solo";
   const requestedGame = route.search.get("game");
-  const initialGame = getClientGame(requestedGame ?? "")?.metadata.id ?? (solo ? "tic-tac-toe" : clientGames[0]?.metadata.id ?? "");
+  const eligibleGames = solo ? availableClientGames.filter((game) => game.metadata.supportsSolo) : availableClientGames;
+  const requested = getClientGame(requestedGame ?? "");
+  const initialGame = requested !== undefined && eligibleGames.some((game) => game.metadata.id === requested.metadata.id)
+    ? requested.metadata.id : eligibleGames[0]?.metadata.id ?? "";
   const [gameId, setGameId] = useState(initialGame);
   const [name, setName] = useState(displayName);
   const [error, setError] = useState("");
@@ -73,7 +76,7 @@ function CreateScreen({ displayName, setDisplayName, transport }: {
     setPending(true);
     setDisplayName(cleanName);
     try {
-      const room = await transport.createRoom({ displayName: cleanName, gameId });
+      const room = await transport.createRoom({ displayName: cleanName, gameId, solo });
       if (solo) {
         await transport.setPhase(room.id, "playing");
         navigate(`/game/${room.id}?solo=1`);
@@ -153,18 +156,21 @@ function GameScreen({ room, displayName, transport }: { readonly room: RoomSnaps
   if (game === undefined) return <section className="message-state" role="alert"><h1>Game unavailable</h1><p>This game view could not be loaded. Ask the host to choose another.</p><AppLink className="button button-primary" to={`/lobby/${room.id}`}>Back to lobby</AppLink></section>;
   const GameView = game.View;
   const roomPlayerName = room.players.find((player) => player.id === room.localPlayerId)?.displayName ?? "Player";
-  return <section className="game-layout"><header className="game-toolbar"><div><p className="eyebrow">Room {room.id}</p><h2>{game.metadata.name}</h2></div><p role="status"><span className="turn-dot" aria-hidden="true" />Round 1 of {room.rounds}</p></header><div className="game-content"><GameView gameId={room.gameId} roomId={room.id} playerName={displayName === "" ? roomPlayerName : displayName} onFinish={() => { void transport.setPhase(room.id, "results").then(() => { navigate(`/results/${room.id}`); }); }} /><Scoreboard players={room.players} /></div></section>;
+  return <section className="game-layout"><header className="game-toolbar"><div><p className="eyebrow">Room {room.id}</p><h2>{game.metadata.name}</h2></div><p role="status"><span className="turn-dot" aria-hidden="true" />Live game</p></header><div className="game-content"><GameView gameId={room.gameId} roomId={room.id} playerName={displayName === "" ? roomPlayerName : displayName} state={room.gameState} sendCommand={(command) => transport.sendGameCommand(room.id, command)} onFinish={() => { void transport.setPhase(room.id, "results").then(() => { navigate(`/results/${room.id}`); }); }} /><Scoreboard players={room.players} /></div></section>;
 }
 
 function ResultsScreen({ room, transport }: { readonly room: RoomSnapshot; readonly transport: RoomTransport }) {
   const winner = [...room.players].sort((left, right) => right.score - left.score)[0];
-  return <section className="results-layout"><div className="results-hero"><span className="result-mark" aria-hidden="true">★</span><p className="eyebrow">Game complete</p><h1>{winner === undefined ? "Good game." : `${winner.displayName} takes it!`}</h1><p>{winner === undefined ? "No scores were recorded this round." : `${String(winner.score)} points and a well-earned victory.`}</p><div className="button-row"><button className="button button-primary" type="button" onClick={() => { void transport.rematch(room.id).then(() => { navigate(`/lobby/${room.id}`); }); }}>Play again</button><AppLink className="button button-secondary" to="/">Return home</AppLink></div></div><Scoreboard heading="Final scores" players={room.players} /></section>;
+  return <section className="results-layout"><div className="results-hero"><span className="result-mark" aria-hidden="true">★</span><p className="eyebrow">Game complete</p><h1>{winner === undefined ? "Good game." : `${winner.displayName} takes it!`}</h1><p>{winner === undefined ? "No scores were recorded this round." : `${String(winner.score)} points and a well-earned victory.`}</p><div className="button-row"><button className="button button-primary" type="button" onClick={() => { void transport.rematch(room.id).then(() => { navigate(`/game/${room.id}`); }); }}>Play again</button><AppLink className="button button-secondary" to="/">Return home</AppLink></div></div><Scoreboard heading="Final scores" players={room.players} /></section>;
 }
 
 export function App({ transport = defaultTransport }: { readonly transport?: RoomTransport }) {
   const route = useRoute();
   const [displayName, setDisplayName] = useDisplayName();
   const room = useRoom(transport, route.roomId);
+  useEffect(() => {
+    if (route.name === "game" && room?.phase === "results") navigate(`/results/${room.id}`);
+  }, [room?.id, room?.phase, route.name]);
   function renderScreen() {
     if (route.name === "home") return <HomeScreen />;
     if (route.name === "create") return <CreateScreen displayName={displayName} setDisplayName={setDisplayName} transport={transport} />;

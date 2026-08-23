@@ -15,6 +15,7 @@ export function isClientMessageWithinLimit(value: string): boolean {
 export const MAX_DISPLAY_NAME_LENGTH = 24;
 export const MAX_GAME_ID_LENGTH = 32;
 export const MAX_RECONNECT_TOKEN_LENGTH = 128;
+export const MAX_COMMAND_ID_LENGTH = 64;
 
 
 export type RoomPhase = "lobby" | "starting" | "playing" | "results";
@@ -33,7 +34,7 @@ export interface StartGameMessage { readonly type: "room:start" }
 export interface ReturnLobbyMessage { readonly type: "room:return_lobby" }
 export interface RematchMessage { readonly type: "room:rematch" }
 export interface LeaveMessage { readonly type: "room:leave" }
-export interface GameCommandMessage { readonly type: "game:command"; readonly command: unknown }
+export interface GameCommandMessage { readonly type: "game:command"; readonly commandId: string; readonly command: unknown }
 
 export type ClientMessage = ClientHelloMessage | ClientPingMessage | SelectGameMessage |
   StartGameMessage | ReturnLobbyMessage |
@@ -74,14 +75,16 @@ export interface GameStateMessage {
   readonly revision: number;
   readonly state: unknown;
 }
+export interface ServerAckMessage { readonly type: "server:ack"; readonly commandId: string; readonly revision: number }
 export interface ServerErrorMessage {
   readonly type: "server:error";
   readonly code: "invalid_message" | "not_admitted" | "forbidden" | "invalid_transition" |
     "room_full" | "rate_limited" | "game_not_configured" | "capacity_unavailable" | "internal_error";
   readonly message: string;
+  readonly commandId?: string;
 }
 export type ServerMessage = ServerHelloMessage | ServerPongMessage | RoomStateMessage |
-  GameStateMessage | ServerErrorMessage;
+  GameStateMessage | ServerAckMessage | ServerErrorMessage;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -120,7 +123,9 @@ export function parseClientMessage(value: string): ClientMessage | undefined {
       return exactKeys(parsed, ["type", "gameId"]) && boundedString(parsed.gameId, 1, MAX_GAME_ID_LENGTH) && /^[a-z0-9-]+$/.test(parsed.gameId) ? { type: parsed.type, gameId: parsed.gameId } : undefined;
 
     case "game:command":
-      return exactKeys(parsed, ["type", "command"]) && isJsonValue(parsed.command) ? { type: parsed.type, command: parsed.command } : undefined;
+      return exactKeys(parsed, ["type", "commandId", "command"]) && boundedString(parsed.commandId, 1, MAX_COMMAND_ID_LENGTH) &&
+        /^[A-Za-z0-9_-]+$/.test(parsed.commandId) && isJsonValue(parsed.command)
+        ? { type: parsed.type, commandId: parsed.commandId, command: parsed.command } : undefined;
     case "room:start": case "room:return_lobby": case "room:rematch": case "room:leave":
       return exactKeys(parsed, ["type"]) ? { type: parsed.type } : undefined;
     default: return undefined;
