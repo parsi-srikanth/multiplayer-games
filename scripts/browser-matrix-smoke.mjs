@@ -34,6 +34,7 @@ for (const item of cases) {
     const response = await page.goto(base, { waitUntil: "networkidle", timeout: 15_000 });
     if (!response?.ok()) throw new Error(`${item.name}: navigation returned ${String(response?.status())}`);
     await page.getByRole("heading", { name: /game night/i }).waitFor();
+    await page.evaluate(async () => { await document.fonts.ready; });
     await page.addScriptTag({ path: axePath });
     const violations = await page.evaluate(async () => (await globalThis.axe.run(document)).violations);
     if (violations.length > 0) throw new Error(`${item.name}: axe violations ${violations.map((entry) => entry.id).join(", ")}`);
