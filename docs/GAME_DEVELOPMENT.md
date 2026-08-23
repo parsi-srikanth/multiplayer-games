@@ -9,8 +9,11 @@ src/games/<game-id>/
   contract.ts       State, Command, and PublicState types
   game.ts           GameDefinition implementation
   game.test.ts      deterministic rule tests
-  ui/               optional React presentation
-  index.ts          public exports and metadata registration
+  index.ts          public exports and authoritative metadata
+
+src/client/games/<game-id>/
+  index.tsx          client metadata and discovered React view
+  ...                local components, styles, and UI tests
 ```
 
 Keep imports flowing inward: UI and room adapters may import the game module; game rules may import only shared contracts and local helpers.
@@ -88,4 +91,4 @@ Prefer the existing `game:command` and `game:state` envelopes; game-specific pay
 - `npm run check` and `npm run deploy:dry-run` pass.
 - Architecture docs are updated if the game requires a new platform capability.
 
-Following this shape keeps game 11 additive: one module, explicit registration, tests, and UI—without another service or deployment.
+Following this shape keeps game 11 additive: authoritative rules plus one discovered client module, tests, and no additional service or deployment. See [Client Game Framework](./CLIENT_GAME_FRAMEWORK.md) for the exact browser interface and route/transport boundary.
