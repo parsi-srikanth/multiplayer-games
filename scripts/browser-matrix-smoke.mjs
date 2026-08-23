@@ -5,6 +5,10 @@ import { chromium, firefox, webkit, devices } from "playwright";
 const base = process.env.BASE_URL ?? "https://games.srikanthparsi.com";
 const evidenceDir = process.env.EVIDENCE_DIR;
 const require = createRequire(import.meta.url);
+const overallTimer = setTimeout(() => {
+  console.error("browser matrix exceeded 180 seconds");
+  process.exit(1);
+}, 180_000);
 const axePath = require.resolve("axe-core/axe.min.js");
 const cases = [
   { name: "chromium-desktop", browser: chromium, context: { viewport: { width: 1440, height: 900 } } },
@@ -18,18 +22,20 @@ const cases = [
 if (evidenceDir !== undefined) await mkdir(evidenceDir, { recursive: true });
 const results = [];
 for (const item of cases) {
-  const instance = await item.browser.launch({ headless: true });
+  const instance = await item.browser.launch({ headless: true, timeout: 20_000 });
   try {
     const context = await instance.newContext(item.context);
     const page = await context.newPage();
+    page.setDefaultTimeout(15_000);
+    page.setDefaultNavigationTimeout(15_000);
     const errors = [];
     page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
     page.on("pageerror", (error) => errors.push(error.message));
-    const response = await page.goto(base, { waitUntil: "networkidle", timeout: 30_000 });
+    const response = await page.goto(base, { waitUntil: "networkidle", timeout: 15_000 });
     if (!response?.ok()) throw new Error(`${item.name}: navigation returned ${String(response?.status())}`);
     await page.getByRole("heading", { name: /game night/i }).waitFor();
     await page.addScriptTag({ path: axePath });
-    const violations = await page.evaluate(async () => (await globalThis.axe.run(document, { rules: { "color-contrast": { enabled: false } } })).violations);
+    const violations = await page.evaluate(async () => (await globalThis.axe.run(document)).violations);
     if (violations.length > 0) throw new Error(`${item.name}: axe violations ${violations.map((entry) => entry.id).join(", ")}`);
     const geometry = await page.evaluate(() => ({ innerWidth, documentWidth: document.documentElement.scrollWidth, bodyWidth: document.body.scrollWidth }));
     if (geometry.documentWidth > geometry.innerWidth || geometry.bodyWidth > geometry.innerWidth)
@@ -46,4 +52,5 @@ for (const item of cases) {
     await context.close();
   } finally { await instance.close(); }
 }
+clearTimeout(overallTimer);
 console.log(JSON.stringify({ base, cases: results }));
