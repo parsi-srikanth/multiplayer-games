@@ -18,4 +18,12 @@ describe("Dots & Boxes client", () => {
     await userEvent.click(screen.getByRole("button", { name: "Open horizontal edge, row 1, column 1" }));
     expect(baseProps.sendCommand).toHaveBeenCalledWith({ type: "claim-edge", orientation: "h", row: 0, column: 0 });
   });
+
+  it("identifies owners and current scores without relying on color", () => {
+    const View = game.View;
+    render(<View {...baseProps} state={{ ...baseProps.state, edges: { "h-0-0": "a" }, boxes: { "0-0": "a" }, scores: { a: 1, b: 0 } }} />);
+    expect(screen.getByRole("button", { name: "Ada claimed horizontal edge, row 1, column 1" })).toBeDefined();
+    expect(screen.getByLabelText("Ada claimed box")).toBeDefined();
+    expect(screen.getByRole("list", { name: "Current scores" }).textContent).toContain("Ada1");
+  });
 });
