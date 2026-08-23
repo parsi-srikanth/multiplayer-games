@@ -109,6 +109,8 @@ npx wrangler rollback "$GOOD_VERSION_ID" --message "rollback after failed releas
 
 Repeat the full live verification contract after rollback. If a release changed Durable Object class lifecycle or incompatible stored data, stop and use the release-specific forward-fix/data recovery plan; Cloudflare may reject the rollback and code rollback cannot undo data.
 
+Allow the deployment to propagate before interpreting a single handshake failure. One bounded retry is acceptable during a controlled drill; repeated failure is an incident and requires immediate roll-forward or investigation.
+
 After a successful drill or resolved incident, restore the reviewed release version explicitly and repeat live verification:
 
 ```bash
@@ -125,11 +127,11 @@ Do not leave a rollback drill serving the old version. Confirm the active deploy
 
 Record these values for each release. The 2026-08-23 checkpoint evidence is consolidated in `CHECKPOINT.md` and the linked GitHub pull request rather than an external paid evidence store:
 
-- [ ] Release source: merged checkpoint `ea9999971a295d89339dd6b7b81c3d2e856b2ca3`; record the release-hardening merge after review.
+- [x] Release source: release-hardening PR #14 merged as `6c9649c4f485905c6ef7b97aba3096180c496c30` after exact-head approval.
 - [x] Wrangler account/zone access and Free Website zone plan verified without exposing credentials.
 - [x] `npm run check`, zero-vulnerability audit, dry-run, and startup analysis passed.
-- [ ] Record the new deployed version and previous known-good version in `CHECKPOINT.md` after release. The initial deployment currently has no earlier rollback version.
+- [x] Current version `b4d18da6-a762-4903-acb7-3b5d045453ce` and previous known-good `6688f552-cf51-4f62-be58-840e85dcf9ca` are recorded in `CHECKPOINT.md`; rollback and roll-forward were exercised.
 - [x] HTTPS health/root/assets and WSS full-stack contract passed publicly.
-- [ ] Automated Chromium/Firefox/WebKit desktop and mobile-viewport matrix passed for the local release candidate; repeat publicly after deployment.
+- [x] Automated Chromium/Firefox/WebKit desktop and mobile-viewport matrix passed publicly after deployment and roll-forward.
 - [x] Rollback owner: repository owner; rollback window: immediately after a failed release, before incompatible storage migration or additional writes.
 - [ ] Physical iOS Safari and Android Chrome evidence remains a manual follow-up and is not claimed by this checkpoint.
