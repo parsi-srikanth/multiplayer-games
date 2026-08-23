@@ -4,6 +4,7 @@ import { cowsBullsClassic } from "./cows-bulls-classic";
 import { wordRace } from "./word-race";
 import { ticTacToePlus } from "./tic-tac-toe-plus";
 import { dotsBoxes } from "./dots-boxes";
+import { connectFour } from "./connect-four";
 
 export interface RuntimeGame {
   readonly metadata: GameMetadata;
@@ -45,3 +46,4 @@ gameRegistry.register(cowsBullsClassic);
 gameRegistry.register(wordRace);
 gameRegistry.register(ticTacToePlus);
 gameRegistry.register(dotsBoxes);
+gameRegistry.register(connectFour);

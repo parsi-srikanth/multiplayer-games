@@ -201,6 +201,12 @@ input::placeholder { color: #777a73; }
 .box { display: grid; place-items: center; font-weight: 800; color: var(--primary-dark); }
 .edge:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
+.connect-controls, .connect-board { display: grid; grid-template-columns: repeat(7, minmax(2.4rem, 3.4rem)); gap: 0.3rem; justify-content: center; }
+.connect-controls button { min-height: 2.75rem; border: 2px solid var(--ink); background: var(--surface); font-weight: 900; cursor: pointer; }
+.connect-board { padding: 0.6rem; background: var(--primary); border: 2px solid var(--ink); }
+.connect-cell { display: grid; place-items: center; aspect-ratio: 1; border-radius: 50%; background: var(--surface); font-size: clamp(1.2rem, 5vw, 2rem); }
+.connect-cell.filled { color: var(--ink); }
+
 @media (hover: hover) and (pointer: fine) {
   .button:hover { box-shadow: 4px 4px 0 var(--ink); transform: translate(-2px, -2px); }
   .card-link:hover { color: var(--primary-dark); }
