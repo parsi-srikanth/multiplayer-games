@@ -8,6 +8,9 @@ describe("Connect Four client", () => {
     const sendCommand = vi.fn(() => Promise.resolve()); const View = game.View;
     render(<View roomId="ROOM1" gameId="connect-four" playerName="Ada" playerId="a" state={{ board: Array<null>(42).fill(null), players: [{ id: "a", displayName: "Ada" }, { id: "b", displayName: "Ben" }], currentPlayerId: "a", winnerId: null, complete: false }} sendCommand={sendCommand} onFinish={vi.fn()} />);
     expect(screen.getAllByRole("button")).toHaveLength(7);
+    expect(screen.getByRole("list", { name: "Player discs" }).textContent).toContain("Ada");
+    expect(screen.getAllByRole("gridcell")).toHaveLength(42);
+    expect(screen.getByRole("gridcell", { name: "Row 1, column 1, empty" })).toBeDefined();
     await userEvent.click(screen.getByRole("button", { name: "Drop in column 1" }));
     expect(sendCommand).toHaveBeenCalledWith({ type: "drop", column: 0 });
   });

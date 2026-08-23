@@ -201,11 +201,13 @@ input::placeholder { color: #777a73; }
 .box { display: grid; place-items: center; font-weight: 800; color: var(--primary-dark); }
 .edge:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
-.connect-controls, .connect-board { display: grid; grid-template-columns: repeat(7, minmax(2.4rem, 3.4rem)); gap: 0.3rem; justify-content: center; }
-.connect-controls button { min-height: 2.75rem; border: 2px solid var(--ink); background: var(--surface); font-weight: 900; cursor: pointer; }
+.connect-controls, .connect-board { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.3rem; width: min(100%, 26rem); margin-inline: auto; }
+.connect-controls button { min-height: 2.75rem; border: 2px solid var(--ink); background: var(--paper); font-weight: 900; cursor: pointer; }
 .connect-board { padding: 0.6rem; background: var(--primary); border: 2px solid var(--ink); }
-.connect-cell { display: grid; place-items: center; aspect-ratio: 1; border-radius: 50%; background: var(--surface); font-size: clamp(1.2rem, 5vw, 2rem); }
+.connect-cell { display: grid; place-items: center; aspect-ratio: 1; border-radius: 50%; background: var(--paper); font-size: clamp(1.2rem, 5vw, 2rem); }
 .connect-cell.filled { color: var(--ink); }
+.connect-legend { display: flex; flex-wrap: wrap; gap: 0.75rem; padding: 0; list-style: none; }
+.connect-legend li { display: flex; align-items: center; gap: 0.35rem; }
 
 @media (hover: hover) and (pointer: fine) {
   .button:hover { box-shadow: 4px 4px 0 var(--ink); transform: translate(-2px, -2px); }
@@ -225,7 +227,7 @@ input::placeholder { color: #777a73; }
   min-width: 0;
   border: 2px solid var(--ink);
   border-radius: .7rem;
-  background: var(--surface);
+  background: var(--paper);
   color: var(--ink);
   font: 800 clamp(1.5rem, 8vw, 2.75rem) / 1 var(--font-display);
 }
