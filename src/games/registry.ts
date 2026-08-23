@@ -5,6 +5,7 @@ import { wordRace } from "./word-race";
 import { ticTacToePlus } from "./tic-tac-toe-plus";
 import { dotsBoxes } from "./dots-boxes";
 import { connectFour } from "./connect-four";
+import { sudokuSprint } from "./sudoku-sprint";
 
 export interface RuntimeGame {
   readonly metadata: GameMetadata;
@@ -47,3 +48,4 @@ gameRegistry.register(wordRace);
 gameRegistry.register(ticTacToePlus);
 gameRegistry.register(dotsBoxes);
 gameRegistry.register(connectFour);
+gameRegistry.register(sudokuSprint);

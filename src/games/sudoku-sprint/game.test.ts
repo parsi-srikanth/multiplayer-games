@@ -1,0 +1,11 @@
+import { describe, expect, it } from "vitest";
+import { sudokuSprint } from "./game";
+const players = [{ id: "a", displayName: "Ada" }, { id: "b", displayName: "Ben" }] as const;
+const ctx = { roomId: "ROOM1", now: 10 };
+function place(state: ReturnType<typeof sudokuSprint.createInitialState>, actor: string, row: number, column: number, value: number) { const result = sudokuSprint.applyCommand(state, { type: "place", row, column, value }, actor, ctx); if (!result.accepted) throw new Error(result.reason); return result.state; }
+describe("Sudoku Sprint", () => {
+  it("keeps boards viewer-private and reports only opponent progress", () => { let state = sudokuSprint.createInitialState(players, ctx); state = place(state, "a", 0, 1, 2); const a = sudokuSprint.projectState(state, "a"); const b = sudokuSprint.projectState(state, "b"); expect(a.board[1]).toBe(2); expect(b.board[1]).toBe(0); expect(b.progress.a).toBe(9); expect(b).not.toHaveProperty("playerStates"); });
+  it("tracks mistakes and prevents clue or filled-cell changes", () => { let state = sudokuSprint.createInitialState(players, ctx); state = place(state, "a", 0, 1, 4); expect(state.playerStates.a?.mistakes).toBe(1); expect(sudokuSprint.applyCommand(state, { type: "place", row: 0, column: 0, value: 2 }, "a", ctx)).toMatchObject({ accepted: false }); state = place(state, "a", 0, 1, 2); expect(sudokuSprint.applyCommand(state, { type: "place", row: 0, column: 1, value: 3 }, "a", ctx)).toMatchObject({ accepted: false }); });
+  it("ends on the first solved board and derives bounded score", () => { let state = sudokuSprint.createInitialState(players, ctx); for (const [row, column, value] of [[0,1,2],[0,2,3],[1,0,3],[1,3,2],[2,1,1],[2,3,3],[3,0,4],[3,2,2]] as const) state = place(state, "a", row, column, value); expect(state.winnerId).toBe("a"); expect(sudokuSprint.isComplete?.(state)).toBe(true); expect(sudokuSprint.getScores?.(state)).toEqual({ a: 100, b: 0 }); });
+  it("strictly validates bounded commands", () => { expect(sudokuSprint.validateCommand({ type: "place", row: 0, column: 0, value: 1 })).toBe(true); expect(sudokuSprint.validateCommand({ type: "place", row: 4, column: 0, value: 1 })).toBe(false); expect(sudokuSprint.validateCommand({ type: "place", row: 0, column: 0, value: 1, extra: true })).toBe(false); });
+});
