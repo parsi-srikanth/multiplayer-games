@@ -185,6 +185,22 @@ input::placeholder { color: #777a73; }
   .game-card:nth-child(3n + 2), .game-card:nth-child(3n + 3) { border-left: 1px solid var(--line); }
 }
 
+.dots-board {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(1rem, 2.4rem));
+  grid-template-rows: repeat(7, minmax(1rem, 2.4rem));
+  align-items: center;
+  justify-content: center;
+  margin: 1rem auto;
+}
+.dot { width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--ink); justify-self: center; }
+.edge { border: 0; border-radius: 999px; background: var(--surface-muted); cursor: pointer; min-width: 0; min-height: 0; }
+.edge-h { width: 100%; height: 0.7rem; }
+.edge-v { width: 0.7rem; height: 100%; justify-self: center; }
+.edge.claimed { background: var(--primary); cursor: default; }
+.box { display: grid; place-items: center; font-weight: 800; color: var(--primary-dark); }
+.edge:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
 @media (hover: hover) and (pointer: fine) {
   .button:hover { box-shadow: 4px 4px 0 var(--ink); transform: translate(-2px, -2px); }
   .card-link:hover { color: var(--primary-dark); }
