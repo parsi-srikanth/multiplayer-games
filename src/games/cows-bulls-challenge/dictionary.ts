@@ -1,5 +1,5 @@
 const COMMON_FIVE_LETTER_WORDS = [
-  "ABOUT", "ABOVE", "ACTOR", "APPLE", "BEACH", "BRAIN", "BRAND", "BREAD", "BRICK", "CHAIR",
+  "ABOUT", "ABOVE", "ACTOR", "ALLEY", "APPLE", "BEACH", "BRAIN", "BRAND", "BREAD", "BRICK", "CHAIR",
   "CHARM", "CHESS", "CHIEF", "CLOUD", "COAST", "CRANE", "DANCE", "DREAM", "DRIVE", "EARTH",
   "FAITH", "FIELD", "FLAME", "FOCUS", "FRAME", "FRESH", "FRUIT", "GIANT", "GLASS", "GRAPE",
   "GREEN", "GROUP", "HEART", "HORSE", "HOUSE", "HUMAN", "JUICE", "KNIFE", "LEMON", "LIGHT",
@@ -12,6 +12,7 @@ const COMMON_FIVE_LETTER_WORDS = [
 ] as const;
 
 const WORDS = new Set<string>(COMMON_FIVE_LETTER_WORDS);
+export const challengeWords: readonly string[] = COMMON_FIVE_LETTER_WORDS;
 
 export function normalizeChallengeWord(value: string): string | undefined {
   const normalized = value.trim().toUpperCase();

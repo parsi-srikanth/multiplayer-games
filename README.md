@@ -58,6 +58,13 @@ src/
 docs/
   ARCHITECTURE.md          system boundaries and production decisions
   GAME_DEVELOPMENT.md      how to add a game module
+  DEPLOYMENT.md            local, release, live verification, and rollback runbook
+  TESTING.md               automated, multiplayer, and mobile acceptance gates
+  SECURITY.md              privacy, hidden-state, and threat boundaries
+  COST.md                  free-tier limits and operating guardrails
+  OPERATIONS.md            monitoring and incident response runbook
+  DECISIONS.md             architecture decision record
+  INTERVIEW_BRIEF.md       concise system narrative and evidence placeholders
 wrangler.jsonc             Worker, assets, route, Durable Object, and migration config
 ```
 
@@ -73,4 +80,10 @@ npx wrangler deploy
 
 No secrets are required by this baseline. If a future feature needs one, use `wrangler secret put NAME`; never commit `.dev.vars` or credentials.
 
-See [Architecture](docs/ARCHITECTURE.md) and [Game Development](docs/GAME_DEVELOPMENT.md).
+See the handbook:
+
+- [Architecture](docs/ARCHITECTURE.md) and [architecture decisions](docs/DECISIONS.md)
+- [Game Development](docs/GAME_DEVELOPMENT.md) and [Testing](docs/TESTING.md)
+- [Deployment](docs/DEPLOYMENT.md), [Operations](docs/OPERATIONS.md), and [Cost](docs/COST.md)
+- [Security and Privacy](docs/SECURITY.md)
+- [Interview Brief](docs/INTERVIEW_BRIEF.md)
