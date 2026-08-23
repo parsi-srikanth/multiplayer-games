@@ -1,6 +1,6 @@
 # Testing and acceptance
 
-> **Status:** this document defines gates. It does not claim that ten games, a complete room lifecycle, production deployment, or the acceptance matrix currently pass.
+> **Checkpoint status (2026-08-23):** seven games and the authoritative room lifecycle pass the automated, local, and public production evidence recorded in `CHECKPOINT.md`. The complete physical-device/browser matrix remains unverified.
 
 ## Automated baseline
 
@@ -20,7 +20,7 @@ npx wrangler check startup
 
 `npm run check` aggregates type generation, typecheck, unit tests, lint, and build. Run it again after local Wrangler smoke testing because `.wrangler/` artifacts can reveal ignore/configuration problems.
 
-Current tests cover selected protocol parsing, routing, and discovery-registry behavior. Coverage is not evidence for game correctness or multiplayer readiness.
+Current tests cover protocol bounds, routing, room lifecycle/reconnect/cleanup, Durable Object persistence and hibernation behavior, executable game rules and projections, client adapters, accessibility, and a 320 CSS-pixel shell smoke. Local two-client WebSocket integration is recorded in `CHECKPOINT.md`; this is not a substitute for the full live and physical-device matrices below.
 
 ## Transport smoke contract
 
@@ -34,7 +34,7 @@ Use the exact local and live probes in [Deployment](DEPLOYMENT.md). A passing sm
 6. the client sees a clean `1000` close; and
 7. Wrangler/live logs show no delayed callback error.
 
-The smoke proves only the implemented transport baseline. It does not prove admission, membership, reconnect recovery, game commands, hidden-state safety, or 2–4 player play.
+The maintained smoke additionally proves two-player admission, authoritative game selection/start, correlated commands through an entire terminal Tic-Tac-Toe+ game, second-viewer convergence, reconnect recovery with preserved player identity, and clean closure. It does not prove host transfer, hidden-state safety across every game, more than two players, or the full physical-device/browser matrix.
 
 ## Multiplayer acceptance matrix
 

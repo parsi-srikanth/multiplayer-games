@@ -1,6 +1,6 @@
 # Parsi Games
 
-A production-oriented foundation for lightweight, authoritative multiplayer browser games at **[games.srikanthparsi.com](https://games.srikanthparsi.com)**.
+A mobile-first, server-authoritative multiplayer game collection targeting **[games.srikanthparsi.com](https://games.srikanthparsi.com)**.
 
 ## What is here
 
@@ -11,7 +11,11 @@ A production-oriented foundation for lightweight, authoritative multiplayer brow
 - Versioned shared protocol and generic game contracts
 - Strict TypeScript, ESLint, Vitest, build, and Wrangler validation
 
-This foundation intentionally does **not** implement a game, matchmaking, accounts, or full room lifecycle yet. Those features should arrive as focused modules without changing the deployment shape.
+## Playable checkpoint
+
+The current release checkpoint includes Cows & Bulls Player Challenge, Cows & Bulls Classic, Word Race, Tic-Tac-Toe+, Dots & Boxes, Connect Four, and Sudoku Sprint. Classic and Word Race support offline local solo play; the other games use authoritative Worker rooms. Memory Match, Trivia Blitz, and Category Blitz remain clearly marked post-checkpoint work.
+
+The checkpoint is live on the canonical custom domain; see [the checkpoint record](docs/CHECKPOINT.md) for verified scope and remaining work.
 
 ## Quick start
 
@@ -42,10 +46,12 @@ npm run check
 | Route | Purpose |
 | --- | --- |
 | `GET /api/health` | Stateless health response |
+| `POST /api/rooms` | Allocate a rate-limited multiplayer room |
+| `GET /api/rooms/:roomId` | Read bounded public room information |
 | `GET /api/rooms/:roomId/connect` | WebSocket upgrade routed deterministically to one room Durable Object |
 | all other non-API paths | Vite assets with SPA fallback |
 
-Room IDs are lowercase alphanumeric with internal hyphens, 3–64 characters.
+Room codes are five cryptographically generated uppercase characters from an ambiguity-reduced alphabet.
 
 ## Project map
 

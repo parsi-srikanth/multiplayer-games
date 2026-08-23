@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "cf:typegen": "wrangler types",
     "deploy:dry-run": "npm run build && wrangler deploy --dry-run",
+    "smoke:full-stack": "node scripts/full-stack-smoke.mjs",
     "check": "npm run cf:typegen && npm run typecheck && npm run test && npm run lint && npm run build"
   },
   "dependencies": {
@@ -42,6 +43,7 @@
     "typescript-eslint": "latest",
     "vite": "latest",
     "vitest": "latest",
-    "wrangler": "latest"
+    "wrangler": "latest",
+    "ws": "^8.21.3"
   }
 }

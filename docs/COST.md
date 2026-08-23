@@ -1,6 +1,6 @@
 # Cost model and free-tier guardrails
 
-> **Status and source date:** planning baseline checked **2026-08-22** against Cloudflare documentation. Limits and prices can change; re-check linked sources on every release. Account plan, unrelated account usage, logs, DNS, and future products can alter the result.
+> **Checkpoint status:** deployed 2026-08-23 with only Worker assets, SQLite Durable Objects, and native rate-limit bindings. The zone API reports `Free Website` at price `0`; the project declares no paid binding or external service. Limits and prices can change, and unrelated account usage can alter the result.
 
 ## Current deployment shape
 
@@ -50,12 +50,12 @@ Do not convert these limits into a published "players supported" claim until pro
 
 1. Remain explicitly on Workers Free; enabling Workers Paid creates at least the current documented minimum subscription charge.
 2. Use static assets for UI and Hibernation WebSockets for sparse room traffic; do not poll.
-3. Persist compact snapshots/events and delete expired rooms after the retention policy is implemented.
+3. Persist one compact, 128 KiB-bounded room snapshot and delete room storage after 24 hours of inactivity.
 4. Bound messages at 16 KiB and rate-limit connections/commands before public launch.
 5. Avoid chat, analytics pipelines, paid APIs, outbound keepalive connections, or new Cloudflare products without a cost ADR.
 6. Monitor at least Worker requests/CPU/errors, DO requests/duration, SQLite reads/writes/storage, socket churn, and room count.
 7. Treat 70% of any daily limit as warning, 85% as release/traffic freeze, and 95% as incident threshold until measured thresholds are approved.
-8. Prefer safe degradation (reject new room creation while allowing bounded active-room completion) over silent inconsistency. This behavior is a requirement, not yet an implemented claim.
+8. Preserve the implemented bounded `429` rate-limit and `503` capacity responses with solo-play guidance rather than allowing silent inconsistency.
 
 ## Release cost evidence gate
 

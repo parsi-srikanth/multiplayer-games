@@ -4,7 +4,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".wrangler", "worker-configuration.d.ts", "cloudflare-test-types.d.ts", "eslint.config.js"] },
+  { ignores: ["dist", ".wrangler", "worker-configuration.d.ts", "cloudflare-test-types.d.ts", "eslint.config.js", "scripts/*.mjs"] },
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,
