@@ -22,6 +22,6 @@ This is not evidence for the full physical-device/browser matrix in `TESTING.md`
 ## Exact continuation point
 
 1. Run the physical mobile/browser matrix and record evidence, including reconnect/background behavior.
-2. Add a live reconnect/host-transfer smoke alongside the existing authoritative-move smoke.
+2. Add live host-transfer coverage alongside the existing reconnect and complete-game smoke.
 3. Implement Memory Match in an isolated reviewed PR.
 4. Implement Trivia Blitz, then Category Blitz, in separate reviewed PRs.

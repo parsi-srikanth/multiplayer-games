@@ -27,7 +27,15 @@ function connect(displayName, reconnectToken) {
       const message = JSON.parse(String(data));
       messages.push(message);
       if (messages.length === 1 && message.type !== "server:hello") return fail(new Error(`${displayName} did not receive server:hello first`));
-      if (message.type === "server:hello") { clearTimeout(timer); resolve({ ws, messages, hello: message }); }
+      if (message.type === "server:hello") {
+        try {
+          required(message.protocolVersion === 1, `${displayName} received the wrong protocol version`);
+          required(message.roomId === room.code, `${displayName} received the wrong room ID`);
+          required(typeof message.playerId === "string" && message.playerId.length > 0, `${displayName} received an empty player ID`);
+          clearTimeout(timer);
+          resolve({ ws, messages, hello: message });
+        } catch (error) { ws.terminate(); fail(error); }
+      }
     });
     ws.once("open", () => ws.send(JSON.stringify({ type: "client:hello", protocolVersion: 1, displayName, ...(reconnectToken === undefined ? {} : { reconnectToken }) })));
   });

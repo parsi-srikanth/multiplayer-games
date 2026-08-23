@@ -1,6 +1,6 @@
 # Testing and acceptance
 
-> **Checkpoint status (2026-08-23):** seven games and the authoritative room lifecycle pass the automated and local full-stack evidence recorded in `CHECKPOINT.md`. Production deployment and the complete physical-device/browser matrix remain unverified.
+> **Checkpoint status (2026-08-23):** seven games and the authoritative room lifecycle pass the automated, local, and public production evidence recorded in `CHECKPOINT.md`. The complete physical-device/browser matrix remains unverified.
 
 ## Automated baseline
 
@@ -34,7 +34,7 @@ Use the exact local and live probes in [Deployment](DEPLOYMENT.md). A passing sm
 6. the client sees a clean `1000` close; and
 7. Wrangler/live logs show no delayed callback error.
 
-The maintained smoke additionally proves two-player admission, authoritative game selection/start, a correlated game command, and second-viewer convergence. It does not prove reconnect recovery, host transfer, hidden-state safety across every game, more than two players, or an entire terminal game.
+The maintained smoke additionally proves two-player admission, authoritative game selection/start, correlated commands through an entire terminal Tic-Tac-Toe+ game, second-viewer convergence, reconnect recovery with preserved player identity, and clean closure. It does not prove host transfer, hidden-state safety across every game, more than two players, or the full physical-device/browser matrix.
 
 ## Multiplayer acceptance matrix
 
