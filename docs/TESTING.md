@@ -92,6 +92,6 @@ Before listing a game as shipped:
 - [ ] all applicable multiplayer matrix rows;
 - [ ] all mobile/browser matrix targets;
 - [ ] local transport smoke and production HTTPS/WSS smoke;
-- [ ] evidence index: `REPLACE_WITH_GAME_RELEASE_EVIDENCE_URL`.
+- [ ] evidence index linked from the game's release PR.
 
-Release summary: `REPLACE_WITH_SHA_DATE_ENVIRONMENT_AND_APPROVER`.
+Current seven-game source/review evidence: PRs #2, #3, #7, #9, #10, #11, and #12. Shared production checkpoint and transport evidence: PR #13 at merge `ea9999971a295d89339dd6b7b81c3d2e856b2ca3`, plus the release-hardening PR recorded in `CHECKPOINT.md`. Unchecked rows remain explicit limitations for future game releases rather than hidden placeholders.
