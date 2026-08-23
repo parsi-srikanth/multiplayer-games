@@ -138,7 +138,7 @@ function LobbyScreen({ room, transport }: { readonly room: RoomSnapshot; readonl
   return (
     <section className="room-layout">
       <div className="room-main">
-        <div className="room-title"><div><p className="eyebrow">Room <span>{room.id}</span></p><h1>Gather your players.</h1></div><span className="player-count">{room.players.length}/{metadata?.maximumPlayers ?? 8} joined</span></div>
+        <div className="room-title"><div><p className="eyebrow">Room <span>{room.id}</span></p><h1>Gather your players.</h1></div><span className="player-count">{room.players.length}/{metadata?.maximumPlayers ?? 4} joined</span></div>
         <div className="invite-strip"><label>Share this invite<input readOnly value={inviteUrl} onFocus={(event) => { event.currentTarget.select(); }} /></label><button className="button button-secondary" type="button" onClick={() => { void copyInvite(); }}>Copy link</button></div>
         <p className="live-message" aria-live="polite">{copyStatus}</p>
         <section aria-labelledby="players-heading"><h2 id="players-heading">Players</h2><ul className="player-list">{room.players.map((player) => <li key={player.id}><span className={`avatar ${player.connected ? "" : "avatar-away"}`} aria-hidden="true">{player.displayName.slice(0, 1).toUpperCase()}</span><span><strong>{player.displayName}</strong><small>{player.id === room.hostId ? "Host" : player.connected ? "Ready" : "Reconnecting"}</small></span><span className={`presence ${player.connected ? "online" : "away"}`}>{player.connected ? "Online" : "Away"}</span></li>)}</ul></section>

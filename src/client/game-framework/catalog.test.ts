@@ -2,8 +2,21 @@ import { describe, expect, it } from "vitest";
 import { clientGames, getClientGame } from "./catalog";
 
 describe("client game discovery", () => {
-  it("discovers ten unique game directories without a central route table", () => {
-    expect(clientGames).toHaveLength(10);
+  it("discovers the ten V1 games without a central route table", () => {
+    const expectedIds = [
+      "category-blitz",
+      "connect-four",
+      "cows-bulls-classic",
+      "cows-bulls-challenge",
+      "dots-boxes",
+      "memory-match",
+      "sudoku-sprint",
+      "tic-tac-toe",
+      "trivia-blitz",
+      "word-race",
+    ];
+
+    expect(clientGames.map((game) => game.metadata.id)).toEqual(expectedIds);
     expect(new Set(clientGames.map((game) => game.metadata.id)).size).toBe(10);
     expect(clientGames.every((game) => typeof game.View === "function")).toBe(true);
   });
