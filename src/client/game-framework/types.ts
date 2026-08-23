@@ -15,6 +15,8 @@ export interface GameViewProps {
   readonly gameId: GameId;
   readonly roomId: string;
   readonly playerName: string;
+  readonly state: unknown;
+  readonly sendCommand: (command: unknown) => Promise<void>;
   readonly onFinish: () => void;
 }
 

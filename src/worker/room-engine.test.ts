@@ -72,6 +72,18 @@ describe("authoritative room engine", () => {
     expect(reconnectPlayer(afterDelayedAlarm, "token-1", 100 + RECONNECT_GRACE_MS + 60_000))
       .toMatchObject({ ok: false, code: "not_admitted" });
   });
+  it("runs Classic and Word Race through the authoritative registry", () => {
+    for (const [gameId, gameCommand] of [
+      ["cows-bulls-classic", { type: "guess", value: "0123" }],
+      ["word-race", { type: "guess", word: "APPLE" }],
+    ] as const) {
+      const state = roomWithPlayers(1);
+      expect(applyRoomMessage(state, "p1", { type: "room:select_game", gameId }, 10)).toMatchObject({ ok: true });
+      expect(applyRoomMessage(state, "p1", { type: "room:start" }, 11)).toMatchObject({ ok: true });
+      expect(applyRoomMessage(state, "p1", { type: "game:command", command: gameCommand }, 12)).toMatchObject({ ok: true });
+      expect(gameProjectionFor(state, "p1")).toEqual(expect.objectContaining({ phase: expect.any(String) }));
+    }
+  });
   it("rejects unknown games and derives results only from validated game commands", () => {
     const state = roomWithPlayers();
     expect(applyRoomMessage(state, "p2", { type: "room:select_game", gameId: "cows-bulls-challenge" }, 10))

@@ -1,5 +1,5 @@
 import type { GameDefinition, GameContext, PlayerId, PlayerView } from "../../shared/game-contract";
-import { normalizeChallengeWord } from "../cows-bulls-challenge/dictionary";
+import { challengeWords, normalizeChallengeWord } from "../cows-bulls-challenge/dictionary";
 import { markWordleGuess, marksToEmoji } from "./feedback";
 import type { LetterMark } from "./feedback";
 
@@ -48,7 +48,12 @@ function complete(state: WordRaceState, playerId: PlayerId): boolean {
   return state.solvedOrder.includes(playerId) || (state.guesses[playerId]?.length ?? 0) >= WORD_RACE_MAX_GUESSES;
 }
 
-export function createWordRaceGame(secretProvider: () => string = () => "CRANE"): GameDefinition<WordRaceState, WordRaceCommand, WordRacePublicState> {
+function randomWord(): string {
+  const value = crypto.getRandomValues(new Uint32Array(1))[0] ?? 0;
+  return challengeWords[value % challengeWords.length] ?? "CRANE";
+}
+
+export function createWordRaceGame(secretProvider: () => string = randomWord): GameDefinition<WordRaceState, WordRaceCommand, WordRacePublicState> {
   return {
     metadata: {
       id: "word-race",
@@ -116,6 +121,8 @@ export function createWordRaceGame(secretProvider: () => string = () => "CRANE")
         ...(state.phase === "results" ? { secret: state.secret } : {}),
       };
     },
+    isComplete: (state) => state.phase === "results",
+    getScores: (state) => state.scores,
   };
 }
 

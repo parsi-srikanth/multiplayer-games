@@ -1,3 +1,5 @@
+import { CloudflareRoomTransport } from "./cloudflare-transport";
+
 export type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "offline";
 export type RoomPhase = "lobby" | "playing" | "results";
 
@@ -17,11 +19,14 @@ export interface RoomSnapshot {
   readonly rounds: number;
   readonly phase: RoomPhase;
   readonly connection: ConnectionStatus;
+  readonly gameState: unknown;
+  readonly revision: number;
 }
 
 export interface CreateRoomInput {
   readonly displayName: string;
   readonly gameId: string;
+  readonly solo?: boolean;
 }
 
 export interface JoinRoomInput {
@@ -37,6 +42,7 @@ export interface RoomTransport {
   updateSettings(roomId: string, gameId: string, rounds: number): Promise<void>;
   setPhase(roomId: string, phase: RoomPhase): Promise<void>;
   rematch(roomId: string): Promise<void>;
+  sendGameCommand(roomId: string, command: unknown): Promise<void>;
   leave(roomId: string): Promise<void>;
 }
 
@@ -64,6 +70,8 @@ export class MockRoomTransport implements RoomTransport {
       rounds: 3,
       phase: "lobby",
       connection: "connected",
+      gameState: null,
+      revision: 0,
     };
     this.#rooms.set(roomId, snapshot);
     this.#emit(snapshot);
@@ -83,10 +91,12 @@ export class MockRoomTransport implements RoomTransport {
         { id: localPlayerId, displayName: input.displayName, connected: true, score: 3 },
         { id: "player-friend", displayName: "Noah", connected: false, score: 2 },
       ],
-      gameId: "tic-tac-toe",
+      gameId: "tic-tac-toe-plus",
       rounds: 3,
       phase: "lobby",
       connection: "connected",
+      gameState: null,
+      revision: 0,
     };
     this.#rooms.set(roomId, snapshot);
     this.#emit(snapshot);
@@ -123,6 +133,11 @@ export class MockRoomTransport implements RoomTransport {
     return this.setPhase(roomId, "lobby");
   }
 
+  sendGameCommand(roomId: string, command: unknown): Promise<void> {
+    this.#update(roomId, (snapshot) => ({ ...snapshot, gameState: command }));
+    return Promise.resolve();
+  }
+
   leave(roomId: string): Promise<void> {
     this.#rooms.delete(normalizeRoomId(roomId));
     return Promise.resolve();
@@ -132,7 +147,7 @@ export class MockRoomTransport implements RoomTransport {
     const normalizedId = normalizeRoomId(roomId);
     const snapshot = this.#rooms.get(normalizedId);
     if (snapshot === undefined) throw new Error("Room not found.");
-    const updated = updater(snapshot);
+    const updated = { ...updater(snapshot), revision: snapshot.revision + 1 };
     this.#rooms.set(normalizedId, updated);
     this.#emit(updated);
   }
@@ -142,4 +157,36 @@ export class MockRoomTransport implements RoomTransport {
       listener(snapshot);
     });
   }
+}
+
+/** Uses in-memory state for solo practice and the Cloudflare Worker for multiplayer rooms. */
+export class HybridRoomTransport implements RoomTransport {
+  readonly #solo = new MockRoomTransport();
+  readonly #multiplayer = new CloudflareRoomTransport();
+  readonly #soloRoomIds = new Set<string>();
+
+  async createRoom(input: CreateRoomInput): Promise<RoomSnapshot> {
+    if (input.solo === true) {
+      const room = await this.#solo.createRoom(input);
+      this.#soloRoomIds.add(room.id);
+      return room;
+    }
+    return this.#multiplayer.createRoom(input);
+  }
+  joinRoom(input: JoinRoomInput): Promise<RoomSnapshot> { return this.#multiplayer.joinRoom(input); }
+  getSnapshot(roomId: string): RoomSnapshot | undefined { return this.#transport(roomId).getSnapshot(roomId); }
+  subscribe(roomId: string, listener: (snapshot: RoomSnapshot) => void): () => void {
+    return this.#transport(roomId).subscribe(roomId, listener);
+  }
+  updateSettings(roomId: string, gameId: string, rounds: number): Promise<void> {
+    return this.#transport(roomId).updateSettings(roomId, gameId, rounds);
+  }
+  setPhase(roomId: string, phase: RoomPhase): Promise<void> { return this.#transport(roomId).setPhase(roomId, phase); }
+  rematch(roomId: string): Promise<void> { return this.#transport(roomId).rematch(roomId); }
+  sendGameCommand(roomId: string, command: unknown): Promise<void> { return this.#transport(roomId).sendGameCommand(roomId, command); }
+  async leave(roomId: string): Promise<void> {
+    await this.#transport(roomId).leave(roomId);
+    this.#soloRoomIds.delete(roomId);
+  }
+  #transport(roomId: string): RoomTransport { return this.#soloRoomIds.has(roomId) ? this.#solo : this.#multiplayer; }
 }
