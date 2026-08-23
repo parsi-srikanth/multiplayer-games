@@ -1,68 +1,68 @@
 # Interview brief
 
-## Thirty-second summary
+## 30-second explanation
 
-Parsi Games is a production-oriented foundation for mobile-first solo and 2–4 player browser games. A single Cloudflare Worker serves a React/Vite SPA and routes each validated room to its own SQLite-backed Durable Object over Hibernation WebSockets. The server is authoritative, clients send intents, and per-viewer projections protect hidden state. The architecture targets the free tier and extensibility, but the current repository is a foundation: it does **not** yet ship ten games, complete room lifecycle, matchmaking, accounts, or a verified production deployment.
+Parsi Games is a deployed mobile-first browser platform for solo and low-friction 2–4 player games. A React/Vite client and one Cloudflare Worker serve the application, while each multiplayer room is an isolated SQLite-backed Durable Object using Hibernation WebSockets. The server validates commands, owns game state and scoring, and sends viewer-specific projections so secrets never depend on UI hiding. Seven games are currently playable at <https://games.srikanthparsi.com>.
 
-## What exists today
+## Two-minute technical walkthrough
 
-- Strict TypeScript boundaries for browser, Worker, tests, and tooling.
-- Static asset/API routing and deterministic room sharding.
-- A SQLite-backed room Durable Object with Hibernation socket attachments.
-- Protocol-v1 hello, ping/pong, runtime parsing, and a 16 KiB pre-parse message cap.
-- Generic authoritative game contracts and discovery metadata registry.
-- Unit tests for selected protocol, route, and registry behavior plus lint/type/build/dry-run commands.
+The Worker serves static assets and exposes health, room-creation, room-info, and WebSocket routes. Room codes deterministically map to one Durable Object, making that object the ordered authority for admission, host election, lifecycle transitions, commands, reconnects, scoring, and broadcasts. The object persists one bounded JSON snapshot in SQLite before broadcasting and schedules alarms for 30-minute reconnect expiry and 24-hour inactive-room deletion.
 
-Avoid saying "production ready," "deployed," "ten games complete," or "fully tested" until the release evidence gates prove those statements.
+The protocol validates untrusted messages at runtime and rejects binary frames or UTF-8 payloads over 16 KiB before JSON parsing. Room creation and access use Cloudflare rate-limit bindings, sockets have per-client and per-room budgets, and unavailable capacity produces bounded `429`/`503` responses rather than accepting unpersisted state.
 
-## Architecture story
+Games implement an authoritative definition with private state, bounded commands, deterministic transitions, scoring, and per-viewer projection. The browser imports only explicitly safe local-solo definitions; server-only Sudoku generation and hidden solutions stay out of browser bundles. The deployed checkpoint includes Cows & Bulls Player Challenge, Cows & Bulls Classic, Word Race, Tic-Tac-Toe+, Dots & Boxes, Connect Four, and Sudoku Sprint.
 
-**Why Durable Objects?** A game room is a coordination atom: players need one ordered authority. `getByName(roomId)` sends the same room to the same object while unrelated rooms scale independently. There is intentionally no global room object.
+Verification includes 96 Node/jsdom tests, three Workers-runtime Durable Object tests, typecheck/lint/build/audit/Wrangler gates, a public three-client terminal-game/reconnect/deterministic-host-election smoke, and Chromium/Firefox/WebKit desktop and mobile-viewport release-candidate checks. Public browser-matrix verification is a post-deploy gate.
 
-**Why SQLite?** Durable storage, not browser or instance memory, is the source of truth. Accepted transitions should persist before broadcast and reconstruct after eviction/hibernation.
+## Five likely interview questions
 
-**Why WebSocket hibernation?** Multiplayer benefits from push, but continuously resident objects waste duration. Hibernation preserves connected sockets while eligible idle objects stop duration billing. Requests, active execution, and storage still count.
+### Why Durable Objects instead of stateless functions plus a database?
 
-**How are games extensible?** A game module owns typed private state, bounded commands, deterministic authoritative transitions, and viewer-safe projections. Transport and room lifecycle remain platform concerns. The first real games should prove the adapter rather than force a speculative framework.
+A room needs one ordered authority for concurrent commands and connected sockets. Deterministic Durable Object routing combines coordination, local SQLite persistence, and WebSocket ownership while unrelated rooms scale independently.
 
-## Security and privacy story
+### How is hidden information protected?
 
-The browser is adversarial. Room IDs, frames, display names, and commands are untrusted. Clients never assert score, winner, time, random result, or another player's identity. Hidden information stays in private state; only a whitelist projection for the current viewer crosses the wire. UI hiding is not security.
+Private game state is never broadcast and then filtered. Each game constructs an explicit projection for one viewer. Reconnect tokens are random, stored only as hashes, and server-only game definitions are kept outside browser imports.
 
-No accounts reduces scope but does not remove authorization needs. Before public games, the platform still needs room admission/seat binding, origin checks, rate/connection limits, reconnect identity, retention/expiry/deletion, abuse telemetry, and per-game hidden-state negative tests. "Ephemeral" is not claimed until cleanup is implemented and verified.
+### What happens when two commands race?
 
-## Cost story
+Both reach the same room object and execute against its current authoritative state in order. Illegal or stale-by-state actions are rejected without mutation; accepted state is persisted before acknowledgement and viewer-specific broadcast.
 
-As checked 2026-08-22, Workers Free documents 100,000 dynamic requests/day and 10 ms CPU/invocation; static asset requests are documented as free/unlimited under the stated conditions. Durable Objects Free documents 100,000 requests/day, 13,000 GB-s/day, 5 million SQLite rows read/day, 100,000 rows written/day, and 5 GB stored. Incoming WebSocket messages receive a 20:1 request billing ratio; Hibernation avoids eligible idle duration. Limits are account-level and mutable, so the team must measure real room-minutes and games before claiming player capacity.
+### How does reconnect and host transfer work?
 
-## Testing story
+A client receives a reconnect token once. The server stores its hash and permits identity recovery for 30 minutes. Permanent departure removes that player and deterministically elects the earliest connected participant as host. The public smoke verifies both reconnect identity and host transfer.
 
-The automated baseline is type generation, four TypeScript configs, Vitest, ESLint, production build, Wrangler type check, deployment dry run, and startup check. The transport smoke is stronger than `101`: HTTPS health/root, WSS `server:hello`, nonce-preserving ping/pong, clean `1000` close, and no delayed server error. A shipped game additionally needs rules, malformed/illegal/concurrent commands, persistence/reconnect, 2/3/4-player convergence, room isolation, hidden projections, and real mobile/browser full-game evidence.
+### What happens at free-tier limits?
 
-## Operational story
+New room/access operations are rate-limited and capacity errors return bounded `429` or `503` responses with solo guidance. Active state is bounded, idle sockets hibernate, and stale room storage is deleted. `$0/month` is conditional on traffic remaining within Cloudflare's free allowances, not a capacity guarantee.
 
-Release from a clean reviewed `main`, capture the previous and new Worker version IDs, deploy with a commit message, then run the live HTTPS/WSS contract and inspect error logs. Wrangler rollback can restore code/assets, but not Durable Object data, migrations, bindings, routes, or DNS. Data-shape changes therefore require compatibility or forward-fix planning.
+## Key tradeoffs
 
-## Likely questions
+1. **Cloudflare Worker + Durable Objects over ASP.NET/Azure hosting:** better zero-idle coordination economics for small public rooms, at the cost of learning Cloudflare-specific runtime and storage semantics.
+2. **One compact snapshot over an event log:** simpler recovery and bounded reads/writes for an MVP, but less historical debugging and replay.
+3. **No accounts or matchmaking:** much lower privacy and product complexity, but room links and reconnect tokens are the identity boundary.
+4. **Server authority over optimistic client rules:** stronger integrity and convergence, at the cost of requiring a networked room for games such as Sudoku whose rules must stay server-only.
 
-**Why not serverless stateless functions plus a database?** A database can persist state but does not itself provide one ordered in-memory/socket coordinator per room. A Durable Object combines deterministic routing, coordination, WebSockets, and local SQLite.
+## What I would change at 10× scale
 
-**What happens when two players move simultaneously?** Both intents arrive at one room authority and are ordered there. The game validates each against the current revision/state; stale/illegal commands must be rejected. Full revision/idempotency behavior remains a pre-game-launch gate.
+- Measure requests, CPU, Durable Object duration, and SQLite operations per completed game before changing architecture.
+- Add abuse telemetry and account-level budget alarms.
+- Introduce explicit command idempotency/revision preconditions if observed retries require them.
+- Version stored game state and add migration/forward-fix tooling before incompatible game changes.
+- Add regional synthetic probes and a larger physical-device lab rather than replacing the per-room authority prematurely.
 
-**How do you prevent card leakage?** Never send the private state and remove fields afterward. Construct an explicit viewer-specific projection and assert in tests that every other player's secrets are absent, including errors/logs/reconnect payloads and side channels.
+## What I learned
 
-**What fails at free-tier limits?** Free-tier operations can fail after a limit is exceeded. The intended response is measured thresholds and safe new-room admission degradation, not accepting unpersisted moves. That overload control is not implemented yet.
+- Hibernation reduces eligible idle duration but does not make requests, messages, alarms, or storage free.
+- Durable Object alarms and synchronous request checks must work together because cleanup alarms are not a substitute for validating expiry at access time.
+- Client/server import boundaries are security boundaries: a safe metadata manifest is insufficient if browser transport imports the full authoritative registry.
+- Production evidence is strongest when the same bounded smoke is reusable locally, publicly, and after rollback.
 
-**Can you roll back safely?** Code rollback is immediate when Cloudflare allows the target version, but storage/migrations/resources are unchanged. Backward-compatible schemas and forward fixes matter more than pretending rollback is universal.
+## Verified evidence
 
-**What would you build next?** Admission/origin/rate/expiry foundations, then one concrete game end-to-end to prove room lifecycle, persistence, reconnect, projections, mobile UX, and cost measurement before scaling toward ten.
-
-## Evidence placeholders for a release interview
-
-- Production URL and release SHA: `REPLACE_WITH_VERIFIED_URL_AND_SHA`
-- Deployed/known-good Worker versions: `REPLACE_WITH_VERSION_IDS`
-- Automated check output: `REPLACE_WITH_CI_OR_TERMINAL_EVIDENCE`
-- HTTPS/WSS smoke and logs: `REPLACE_WITH_LIVE_EVIDENCE`
-- Shipped game list and acceptance matrix: `REPLACE_WITH_GAME_EVIDENCE`
-- Cost/dashboard snapshot date: `REPLACE_WITH_COST_EVIDENCE`
-- Security/privacy review: `REPLACE_WITH_REVIEW_EVIDENCE`
+- Live URL: <https://games.srikanthparsi.com>
+- Public source: <https://github.com/parsi-srikanth/multiplayer-games>
+- Production checkpoint merge: `ea9999971a295d89339dd6b7b81c3d2e856b2ca3`
+- Checkpoint review and evidence: pull request #13
+- Current deployed and rollback version IDs: recorded in [CHECKPOINT.md](CHECKPOINT.md)
+- Testing, security, cost, deployment, and operations evidence: this repository's `docs/` directory

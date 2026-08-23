@@ -70,7 +70,8 @@ docs/
   COST.md                  free-tier limits and operating guardrails
   OPERATIONS.md            monitoring and incident response runbook
   DECISIONS.md             architecture decision record
-  INTERVIEW_BRIEF.md       concise system narrative and evidence placeholders
+  INTERVIEW_BRIEF.md       concise system narrative and verified evidence
+  LEARNING_NOTES.md        Cloudflare concepts, tradeoffs, and study notes
 wrangler.jsonc             Worker, assets, route, Durable Object, and migration config
 ```
 
@@ -92,4 +93,4 @@ See the handbook:
 - [Game Development](docs/GAME_DEVELOPMENT.md) and [Testing](docs/TESTING.md)
 - [Deployment](docs/DEPLOYMENT.md), [Operations](docs/OPERATIONS.md), and [Cost](docs/COST.md)
 - [Security and Privacy](docs/SECURITY.md)
-- [Interview Brief](docs/INTERVIEW_BRIEF.md)
+- [Interview Brief](docs/INTERVIEW_BRIEF.md) and [Learning Notes](docs/LEARNING_NOTES.md)
