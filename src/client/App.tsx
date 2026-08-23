@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { clientGames, getClientGame, getGameMetadata } from "./game-framework/catalog";
+import { availableClientGames, clientGames, getClientGame, getGameMetadata, isGameAvailable } from "./game-framework/catalog";
 import { AppLink, navigate, useRoute } from "./router";
 import { HybridRoomTransport } from "./room/transport";
 import type { RoomSnapshot, RoomTransport } from "./room/transport";
@@ -42,7 +42,7 @@ function HomeScreen() {
       <section className="catalog-section" aria-labelledby="games-heading">
         <div className="section-heading"><p className="eyebrow">The game shelf</p><h2 id="games-heading">What are we playing?</h2></div>
         <div className="game-grid">
-          {clientGames.map(({ metadata }) => <GameCard key={metadata.id} game={metadata} action={<AppLink className="card-link" to={`/create?game=${metadata.id}`}><span className="sr-only">Create a room for </span>Play {metadata.name}<span aria-hidden="true"> →</span></AppLink>} />)}
+          {clientGames.map(({ metadata }) => <GameCard key={metadata.id} game={metadata} action={isGameAvailable(metadata.id) ? <AppLink className="card-link" to={`/create?game=${metadata.id}`}><span className="sr-only">Create a room for </span>Play {metadata.name}<span aria-hidden="true"> →</span></AppLink> : <span className="game-meta">Coming soon</span>} />)}
         </div>
       </section>
     </>
@@ -57,7 +57,10 @@ function CreateScreen({ displayName, setDisplayName, transport }: {
   const route = useRoute();
   const solo = route.search.get("mode") === "solo";
   const requestedGame = route.search.get("game");
-  const initialGame = getClientGame(requestedGame ?? "")?.metadata.id ?? (solo ? "tic-tac-toe-plus" : clientGames[0]?.metadata.id ?? "");
+  const eligibleGames = solo ? availableClientGames.filter((game) => game.metadata.supportsSolo) : availableClientGames;
+  const requested = getClientGame(requestedGame ?? "");
+  const initialGame = requested !== undefined && eligibleGames.some((game) => game.metadata.id === requested.metadata.id)
+    ? requested.metadata.id : eligibleGames[0]?.metadata.id ?? "";
   const [gameId, setGameId] = useState(initialGame);
   const [name, setName] = useState(displayName);
   const [error, setError] = useState("");

@@ -1,6 +1,6 @@
 import type { ReactNode, SyntheticEvent } from "react";
 import { useState } from "react";
-import { clientGames } from "../game-framework/catalog";
+import { availableClientGames } from "../game-framework/catalog";
 import type { ClientGameMetadata } from "../game-framework/types";
 import { AppLink } from "../router";
 import type { ConnectionStatus, RoomPlayer } from "../room/transport";
@@ -46,7 +46,7 @@ export function GamePicker({ selectedId, onChange, soloOnly = false }: {
   readonly onChange: (gameId: string) => void;
   readonly soloOnly?: boolean;
 }) {
-  const games = soloOnly ? clientGames.filter((game) => game.metadata.supportsSolo) : clientGames;
+  const games = soloOnly ? availableClientGames.filter((game) => game.metadata.supportsSolo) : availableClientGames;
   return (
     <fieldset className="game-picker">
       <legend>Choose a game</legend>

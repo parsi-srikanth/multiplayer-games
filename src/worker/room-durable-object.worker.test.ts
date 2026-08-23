@@ -88,15 +88,17 @@ describe("RoomDurableObject integration", () => {
     await a.inbox.state((room) => room.selectedGameId === "cows-bulls-challenge");
     a.inbox.send({ type: "room:start" });
     await a.inbox.state((room) => room.phase === "playing");
-    a.inbox.send({ type: "game:command", command: { type: "set-secret", word: "APPLE" } });
+    a.inbox.send({ type: "game:command", commandId: "cmd-a-secret", command: { type: "set-secret", word: "APPLE" } });
     await a.inbox.state((room) => room.game !== null && JSON.stringify(room.game).includes(a.playerId));
     expect(JSON.stringify(await b.inbox.state((room) => room.game !== null))).not.toContain("APPLE");
-    b.inbox.send({ type: "game:command", command: { type: "set-secret", word: "GRAPE" } });
+    b.inbox.send({ type: "game:command", commandId: "cmd-b-secret", command: { type: "set-secret", word: "GRAPE" } });
     await b.inbox.state((room) => JSON.stringify(room.game).includes(b.playerId));
-    a.inbox.send({ type: "game:command", command: { type: "guess", targetPlayerId: b.playerId, word: "GRAPE" } });
+    a.inbox.send({ type: "game:command", commandId: "cmd-a-guess", command: { type: "guess", targetPlayerId: b.playerId, word: "GRAPE" } });
     await a.inbox.state((room) => room.phase === "playing");
-    b.inbox.send({ type: "game:command", command: { type: "guess", targetPlayerId: a.playerId, word: "APPLE" } });
+    b.inbox.send({ type: "game:command", commandId: "cmd-b-guess", command: { type: "guess", targetPlayerId: a.playerId, word: "APPLE" } });
     const results = await a.inbox.state((room) => room.phase === "results");
+    await expect(b.inbox.next((message) => message.type === "server:ack" && message.commandId === "cmd-b-guess"))
+      .resolves.toMatchObject({ type: "server:ack", commandId: "cmd-b-guess" });
     expect(results.results).toEqual(expect.arrayContaining([
       expect.objectContaining({ playerId: a.playerId, score: 160, rank: 1 }),
       expect.objectContaining({ playerId: b.playerId, score: 160, rank: 1 }),

@@ -20,8 +20,8 @@ interface SessionAttachment {
   rateCount: number;
   replaced?: boolean;
 }
-function errorMessage(code: ServerErrorMessage["code"], message: string): string {
-  return serializeServerMessage({ type: "server:error", code, message });
+function errorMessage(code: ServerErrorMessage["code"], message: string, commandId?: string): string {
+  return serializeServerMessage({ type: "server:error", code, message, ...(commandId === undefined ? {} : { commandId }) });
 }
 function encodeToken(bytes: Uint8Array): string {
   let binary = ""; for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -147,11 +147,12 @@ export class RoomDurableObject extends DurableObject<Env> {
     }
     if (parsed.type === "client:hello") { webSocket.send(errorMessage("invalid_message", "Session is already admitted.")); return; }
     const result = applyRoomMessage(state, attachment.playerId, parsed, now);
-    if (!result.ok) { webSocket.send(errorMessage(result.code, result.message)); return; }
+    if (!result.ok) { webSocket.send(errorMessage(result.code, result.message, parsed.type === "game:command" ? parsed.commandId : undefined)); return; }
     if (!result.changed) return;
     try { await this.persistAndSchedule(state); }
-    catch { webSocket.send(errorMessage("capacity_unavailable", "Room capacity is temporarily unavailable.")); webSocket.close(1013, "Try again later"); return; }
+    catch { webSocket.send(errorMessage("capacity_unavailable", "Room capacity is temporarily unavailable.", parsed.type === "game:command" ? parsed.commandId : undefined)); webSocket.close(1013, "Try again later"); return; }
     this.broadcastState(state);
+    if (parsed.type === "game:command") webSocket.send(serializeServerMessage({ type: "server:ack", commandId: parsed.commandId, revision: state.revision }));
     if (parsed.type === "room:leave") webSocket.close(1000, "Left room");
   }
 

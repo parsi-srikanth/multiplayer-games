@@ -55,6 +55,16 @@ describe("CloudflareRoomTransport", () => {
     socket.server(roomState(2, "word-race"));
     await expect(update).resolves.toBeUndefined();
     expect(transport.getSnapshot("ABCDE")?.gameId).toBe("word-race");
+
+    let acknowledged = false;
+    const command = transport.sendGameCommand("ABCDE", { type: "guess", word: "APPLE" }).then(() => { acknowledged = true; });
+    const sentCommand = JSON.parse(socket.sent.at(-1) ?? "{}") as { commandId?: string };
+    socket.server(roomState(3, "word-race"));
+    await Promise.resolve();
+    expect(acknowledged).toBe(false);
+    socket.server({ type: "server:ack", commandId: sentCommand.commandId, revision: 3 });
+    await command;
+    expect(acknowledged).toBe(true);
   });
 
   it("creates through HTTP before opening the room WebSocket", async () => {
