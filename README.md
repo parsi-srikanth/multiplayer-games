@@ -15,7 +15,7 @@ A mobile-first, server-authoritative multiplayer game collection targeting **[ga
 
 The current release checkpoint includes Cows & Bulls Player Challenge, Cows & Bulls Classic, Word Race, Tic-Tac-Toe+, Dots & Boxes, Connect Four, and Sudoku Sprint. Classic and Word Race support offline local solo play; the other games use authoritative Worker rooms. Memory Match, Trivia Blitz, and Category Blitz remain clearly marked post-checkpoint work.
 
-Production deployment is currently blocked by Cloudflare token permissions; see [the checkpoint record](docs/CHECKPOINT.md).
+The checkpoint is live on the canonical custom domain; see [the checkpoint record](docs/CHECKPOINT.md) for verified scope and remaining work.
 
 ## Quick start
 

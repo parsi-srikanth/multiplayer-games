@@ -17,12 +17,11 @@ This is not evidence for the full physical-device/browser matrix in `TESTING.md`
 
 ## Production status
 
-`games.srikanthparsi.com` is not deployed and does not resolve. The available Cloudflare token identifies the correct account but returns API authentication error `10000` for Workers deployment APIs. Release requires a token scoped to the target account and zone with Workers Scripts Edit, Workers Routes Edit, Zone Read, and DNS Edit. No paid feature is required.
+`https://games.srikanthparsi.com` is live on Cloudflare Worker version `6688f552-cf51-4f62-be58-840e85dcf9ca`. DNS, HTTPS, static assets, health, room creation, two WebSocket admissions, authoritative Tic-Tac-Toe+ start/move acknowledgement, and second-viewer convergence were verified from the public custom domain. The architecture remains eligible for `$0/month under bounded free-tier usage`; this is conditional on traffic staying within Cloudflare's free allowances.
 
 ## Exact continuation point
 
-1. Supply the narrowly scoped Cloudflare release token.
-2. Run the release commands in `DEPLOYMENT.md` from clean `main`.
-3. Verify HTTPS, assets, health, room creation, WSS admission, two-client authoritative play, and reconnect on the custom domain.
-4. Run the physical mobile/browser matrix.
-5. Implement Memory Match, then Trivia Blitz, then Category Blitz in separate reviewed PRs.
+1. Run the physical mobile/browser matrix and record evidence, including reconnect/background behavior.
+2. Add a live reconnect/host-transfer smoke alongside the existing authoritative-move smoke.
+3. Implement Memory Match in an isolated reviewed PR.
+4. Implement Trivia Blitz, then Category Blitz, in separate reviewed PRs.

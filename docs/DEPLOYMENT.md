@@ -1,6 +1,6 @@
 # Deployment and rollback
 
-> **Status:** release groundwork only. No successful production deployment or custom-domain verification is recorded here. Complete the evidence gates below during the first release.
+> **Status:** the first production deployment was verified on 2026-08-23. Follow this runbook for subsequent releases and preserve the evidence listed below.
 
 ## Prerequisites
 
