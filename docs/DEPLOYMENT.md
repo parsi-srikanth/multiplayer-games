@@ -28,7 +28,7 @@ Keep Wrangler running, then execute the maintained two-client contract in anothe
 BASE_URL=http://localhost:8787 npm run smoke:full-stack
 ```
 
-The bounded smoke verifies health and assets, creates a room through the rate-limited API, admits two independent WebSocket clients, validates hello/ping/pong, selects and completes Tic-Tac-Toe+, reconnects one player with preserved identity, checks viewer convergence, transfers host after permanent departure, and requires clean socket closures. Inspect the Wrangler terminal after closure; delayed Durable Object callback errors fail the smoke.
+The bounded smoke verifies health and assets, creates a room through the rate-limited API, admits two independent game clients, validates hello/ping/pong, selects and completes Tic-Tac-Toe+, reconnects one player with preserved identity, checks viewer convergence, admits a third election participant in the lobby, verifies deterministic host election after permanent departure, and requires clean socket closures. Inspect the Wrangler terminal after closure; delayed Durable Object callback errors fail the smoke.
 
 Install Playwright's Chromium, Firefox, and WebKit browsers once, then run the maintained production browser matrix:
 
@@ -125,11 +125,11 @@ Do not leave a rollback drill serving the old version. Confirm the active deploy
 
 Record these values for each release. The 2026-08-23 checkpoint evidence is consolidated in `CHECKPOINT.md` and the linked GitHub pull request rather than an external paid evidence store:
 
-- [x] Release source: merged checkpoint `ea9999971a295d89339dd6b7b81c3d2e856b2ca3` and reviewed follow-up release-hardening PR.
+- [ ] Release source: merged checkpoint `ea9999971a295d89339dd6b7b81c3d2e856b2ca3`; record the release-hardening merge after review.
 - [x] Wrangler account/zone access and Free Website zone plan verified without exposing credentials.
 - [x] `npm run check`, zero-vulnerability audit, dry-run, and startup analysis passed.
-- [x] Deployed version and previous known-good version recorded in `CHECKPOINT.md` after release.
+- [ ] Record the new deployed version and previous known-good version in `CHECKPOINT.md` after release. The initial deployment currently has no earlier rollback version.
 - [x] HTTPS health/root/assets and WSS full-stack contract passed publicly.
-- [x] Automated Chromium/Firefox/WebKit desktop and mobile-viewport matrix passed publicly.
+- [ ] Automated Chromium/Firefox/WebKit desktop and mobile-viewport matrix passed for the local release candidate; repeat publicly after deployment.
 - [x] Rollback owner: repository owner; rollback window: immediately after a failed release, before incompatible storage migration or additional writes.
 - [ ] Physical iOS Safari and Android Chrome evidence remains a manual follow-up and is not claimed by this checkpoint.

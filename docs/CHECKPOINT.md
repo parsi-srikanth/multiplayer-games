@@ -10,8 +10,8 @@ The Worker uses one SQLite Durable Object per room, hibernating WebSockets, five
 
 - 96 Node/jsdom tests and three Cloudflare Workers-runtime tests.
 - TypeScript, ESLint, Vite production build, dependency audit, Wrangler dry run, and startup analysis.
-- Local and public full-stack smoke: health, static assets, room creation, two WebSocket clients, hello/ping/pong, game selection and complete authoritative Tic-Tac-Toe+ round, reconnect with preserved identity, converged viewer projection, deterministic host transfer, and clean closure.
-- Public browser matrix passed in desktop Chromium, Firefox, and WebKit; Chromium 320px portrait/landscape; and iPhone 13 WebKit portrait/landscape. Every case had zero axe violations, console/page errors, or horizontal overflow, plus keyboard-focusable creation controls.
+- Local and public full-stack smoke: health, static assets, room creation, two game clients plus a third election participant, hello/ping/pong, game selection and complete authoritative Tic-Tac-Toe+ round, reconnect with preserved identity, converged viewer projection, deterministic host election among two eligible connected players, and clean closure.
+- The release candidate passed a local production-build matrix in desktop Chromium, Firefox, and WebKit; Chromium 320px portrait/landscape; and iPhone 13 WebKit portrait/landscape. Every case had zero full-axe violations, console/page errors, or horizontal overflow, plus keyboard-focusable creation controls. Repeat this matrix publicly after deploying the release candidate.
 
 This is not evidence for the full physical-device/browser matrix in `TESTING.md`.
 

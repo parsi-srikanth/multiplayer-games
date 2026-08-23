@@ -34,7 +34,7 @@ Use the exact local and live probes in [Deployment](DEPLOYMENT.md). A passing sm
 6. the client sees a clean `1000` close; and
 7. Wrangler/live logs show no delayed callback error.
 
-The maintained smoke additionally proves two-player admission, authoritative game selection/start, correlated commands through an entire terminal Tic-Tac-Toe+ game, second-viewer convergence, reconnect recovery with preserved player identity, deterministic host transfer after permanent departure, and clean closure. It does not prove hidden-state safety across every game, more than two players, or the full physical-device matrix.
+The maintained smoke additionally proves two-player gameplay, authoritative game selection/start, correlated commands through an entire terminal Tic-Tac-Toe+ game, second-viewer convergence, reconnect recovery with preserved player identity, three-player admission after returning to the lobby, deterministic host election among two eligible connected players after permanent departure, and clean closure. It does not prove hidden-state safety across every game, three/four-player gameplay, or the full physical-device matrix.
 
 `npm run smoke:browsers` covers desktop Chromium, Firefox, and WebKit plus Chromium/WebKit mobile portrait and landscape emulations. It fails on browser errors, horizontal overflow, axe violations, an unfocusable primary CTA, or an unusable create-room form. Emulation supplements but does not replace physical Safari/Chrome testing.
 

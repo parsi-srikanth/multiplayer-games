@@ -101,10 +101,12 @@ await waitFor(host, (message) => message.type === "server:ack" && message.comman
 await waitFor(guest, (message) => message.type === "room:state" && message.room.phase === "results" && message.room.results?.[0]?.playerId === host.hello.playerId, "terminal results convergence");
 host.ws.send(JSON.stringify({ type: "room:return_lobby" }));
 await waitFor(guest, (message) => message.type === "room:state" && message.room.phase === "lobby", "return to lobby");
+const observer = await connect("Smoke Observer");
+await waitFor(guest, (message) => message.type === "room:state" && message.room.players.length === 3, "three-player election setup");
 const hostClose = waitForServerClose(host);
 host.ws.send(JSON.stringify({ type: "room:leave" }));
 await hostClose;
-await waitFor(guest, (message) => message.type === "room:state" && message.room.players.length === 1 && message.room.viewer.isHost && message.room.players[0]?.id === guest.hello.playerId, "host transfer");
-await closeCleanly(guest);
+await waitFor(guest, (message) => message.type === "room:state" && message.room.players.length === 2 && message.room.viewer.isHost && message.room.players[0]?.id === guest.hello.playerId && message.room.players.some((player) => player.id === observer.hello.playerId && !player.isHost), "deterministic host election");
+await Promise.all([closeCleanly(guest), closeCleanly(observer)]);
 clearTimeout(overallTimer);
-console.log(JSON.stringify({ health: "ok", assets: "ok", room: room.code, players: 2, helloFirst: true, pingPong: true, game: "tic-tac-toe-plus", completedGame: true, reconnect: true, synchronized: true, hostTransfer: true, cleanClose: true }));
+console.log(JSON.stringify({ health: "ok", assets: "ok", room: room.code, players: 3, helloFirst: true, pingPong: true, game: "tic-tac-toe-plus", completedGame: true, reconnect: true, synchronized: true, deterministicHostElection: true, cleanClose: true }));

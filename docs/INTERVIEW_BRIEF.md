@@ -12,7 +12,7 @@ The protocol validates untrusted messages at runtime and rejects binary frames o
 
 Games implement an authoritative definition with private state, bounded commands, deterministic transitions, scoring, and per-viewer projection. The browser imports only explicitly safe local-solo definitions; server-only Sudoku generation and hidden solutions stay out of browser bundles. The deployed checkpoint includes Cows & Bulls Player Challenge, Cows & Bulls Classic, Word Race, Tic-Tac-Toe+, Dots & Boxes, Connect Four, and Sudoku Sprint.
 
-Verification includes 96 Node/jsdom tests, three Workers-runtime Durable Object tests, typecheck/lint/build/audit/Wrangler gates, a public two-client terminal-game/reconnect/host-transfer smoke, and public Chromium/Firefox/WebKit desktop and mobile-viewport checks.
+Verification includes 96 Node/jsdom tests, three Workers-runtime Durable Object tests, typecheck/lint/build/audit/Wrangler gates, a public three-client terminal-game/reconnect/deterministic-host-election smoke, and Chromium/Firefox/WebKit desktop and mobile-viewport release-candidate checks. Public browser-matrix verification is a post-deploy gate.
 
 ## Five likely interview questions
 
