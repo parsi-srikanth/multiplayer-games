@@ -1,7 +1,8 @@
 import type { ClientMessage, RoomPhase, RoomProjection } from "../shared/protocol";
 
 export const ROOM_CAPACITY = 4;
-export const RECONNECT_GRACE_MS = 30_000;
+export const RECONNECT_GRACE_MS = 30 * 60 * 1000;
+export const ROOM_INACTIVE_TTL_MS = 24 * 60 * 60 * 1000;
 
 export interface PlayerState {
   id: string;
@@ -43,6 +44,12 @@ export function sanitizeDisplayName(input: string): string | undefined {
 export function createRoomState(code: string, now: number): RoomState {
   return { code, phase: "lobby", revision: 0, hostId: null, selectedGameId: null, createdAt: now,
     updatedAt: now, players: [], results: null, privateGameState: null };
+}
+export function roomExpiresAt(state: RoomState): number {
+  return state.updatedAt + ROOM_INACTIVE_TTL_MS;
+}
+export function isRoomExpired(state: RoomState, now: number): boolean {
+  return now >= roomExpiresAt(state);
 }
 function changed(state: RoomState, now: number): void { state.revision += 1; state.updatedAt = now; }
 function player(state: RoomState, id: string): PlayerState | undefined { return state.players.find((item) => item.id === id); }

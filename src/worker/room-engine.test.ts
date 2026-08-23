@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { admitPlayer, advanceStarting, applyRoomMessage, createRoomState, disconnectPlayer,
-  expireDisconnectedPlayers, projectRoom, reconnectPlayer, RECONNECT_GRACE_MS, sanitizeDisplayName } from "./room-engine";
+  expireDisconnectedPlayers, isRoomExpired, projectRoom, reconnectPlayer, RECONNECT_GRACE_MS,
+  ROOM_INACTIVE_TTL_MS, roomExpiresAt, sanitizeDisplayName } from "./room-engine";
 import type { RoomState } from "./room-engine";
 
 function roomWithPlayers(count = 2): RoomState {
@@ -14,6 +15,15 @@ function roomWithPlayers(count = 2): RoomState {
 }
 
 describe("authoritative room engine", () => {
+  it("uses a 30-minute reconnect grace and a sliding 24-hour inactivity expiry", () => {
+    const state = createRoomState("ABCDE", 100);
+    expect(RECONNECT_GRACE_MS).toBe(30 * 60 * 1000);
+    expect(roomExpiresAt(state)).toBe(100 + ROOM_INACTIVE_TTL_MS);
+    expect(isRoomExpired(state, roomExpiresAt(state) - 1)).toBe(false);
+    expect(isRoomExpired(state, roomExpiresAt(state))).toBe(true);
+    admitPlayer(state, { id: "p1", displayName: "Player", tokenHash: "token", now: 500 });
+    expect(roomExpiresAt(state)).toBe(500 + ROOM_INACTIVE_TTL_MS);
+  });
   it("sanitizes temporary nicknames", () => {
     expect(sanitizeDisplayName("  Ada\u0000   Lovelace  ")).toBe("Ada Lovelace");
     expect(sanitizeDisplayName("Ａｄａ")).toBe("Ada");

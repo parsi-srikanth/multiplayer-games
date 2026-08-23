@@ -8,6 +8,12 @@ function corsHeaders(origin: string | null): Record<string, string> {
 function jsonError(status: number, message: string, origin: string | null): Response {
   return Response.json({ error: message }, { status, headers: corsHeaders(origin) });
 }
+function multiplayerUnavailable(origin: string | null): Response {
+  return Response.json(
+    { error: "Multiplayer is temporarily unavailable. Solo games remain available.", code: "multiplayer_unavailable" },
+    { status: 503, headers: { ...corsHeaders(origin), "Retry-After": "300" } },
+  );
+}
 function withCors(response: Response, origin: string | null): Response {
   const next = new Response(response.body, response);
   for (const [key, value] of Object.entries(corsHeaders(origin))) next.headers.set(key, value);
@@ -29,24 +35,29 @@ export default {
     }
     if (url.pathname === "/api/health" && request.method === "GET") return Response.json({ status: "ok" }, { headers: corsHeaders(origin) });
     if (url.pathname === "/api/rooms" && request.method === "POST") {
-      for (let attempt = 0; attempt < 12; attempt += 1) {
-        const code = generateRoomCode(); const response = await env.ROOMS.getByName(code).fetch(internalRequest(request, code, "_create"));
-        if (response.status === 409) continue;
-        if (!response.ok) return withCors(response, origin);
-        return Response.json({ code, shareUrl: `${url.origin}/?room=${code}`, connectUrl: `/api/rooms/${code}/connect` },
-          { status: 201, headers: { ...corsHeaders(origin), Location: `/api/rooms/${code}` } });
-      }
+      try {
+        for (let attempt = 0; attempt < 12; attempt += 1) {
+          const code = generateRoomCode();
+          const response = await env.ROOMS.getByName(code).fetch(internalRequest(request, code, "_create"));
+          if (response.status === 409) continue;
+          if (!response.ok) return withCors(response, origin);
+          return Response.json({ code, shareUrl: `${url.origin}/?room=${code}`, connectUrl: `/api/rooms/${code}/connect` },
+            { status: 201, headers: { ...corsHeaders(origin), Location: `/api/rooms/${code}` } });
+        }
+      } catch { return multiplayerUnavailable(origin); }
       return jsonError(503, "Could not allocate a room code.", origin);
     }
     const infoRoomId = roomInfoIdFromPath(url.pathname);
     if (infoRoomId !== undefined && request.method === "GET") {
-      return withCors(await env.ROOMS.getByName(infoRoomId).fetch(internalRequest(request, infoRoomId, "_info")), origin);
+      try { return withCors(await env.ROOMS.getByName(infoRoomId).fetch(internalRequest(request, infoRoomId, "_info")), origin); }
+      catch { return multiplayerUnavailable(origin); }
     }
     const roomId = roomIdFromPath(url.pathname);
     if (roomId !== undefined) {
       if (!isWebSocketUpgrade(request)) return jsonError(426, "Expected a GET WebSocket upgrade.", origin);
       const headers = new Headers(request.headers); headers.set("X-Room-ID", roomId);
-      return env.ROOMS.getByName(roomId).fetch(new Request(request, { headers }));
+      try { return await env.ROOMS.getByName(roomId).fetch(new Request(request, { headers })); }
+      catch { return multiplayerUnavailable(origin); }
     }
     if (url.pathname.startsWith("/api/")) return jsonError(404, "API route not found.", origin);
     return env.ASSETS.fetch(request);

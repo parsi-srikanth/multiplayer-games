@@ -7,7 +7,8 @@ import {
 } from "../shared/protocol";
 import type { ServerErrorMessage } from "../shared/protocol";
 import { advanceStarting, admitPlayer, applyRoomMessage, createRoomState, disconnectPlayer,
-  expireDisconnectedPlayers, projectRoom, reconnectPlayer, RECONNECT_GRACE_MS, sanitizeDisplayName } from "./room-engine";
+  expireDisconnectedPlayers, isRoomExpired, projectRoom, reconnectPlayer, RECONNECT_GRACE_MS,
+  roomExpiresAt, sanitizeDisplayName } from "./room-engine";
 import type { RoomState } from "./room-engine";
 
 const RATE_WINDOW_MS = 10_000;
@@ -45,18 +46,23 @@ export class RoomDurableObject extends DurableObject<Env> {
     `);
   }
 
-  override fetch(request: Request): Response {
+  override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname.endsWith("/_create") && request.method === "POST") {
       const code = request.headers.get("X-Room-ID");
       if (code === null) return Response.json({ error: "Room context missing" }, { status: 400 });
-      if (this.loadState() !== undefined) return Response.json({ error: "Room already exists" }, { status: 409 });
-      this.saveState(createRoomState(code, Date.now()));
+      const existing = this.loadState();
+      if (existing !== undefined && !isRoomExpired(existing, Date.now())) return Response.json({ error: "Room already exists" }, { status: 409 });
+      if (existing !== undefined) await this.expireRoom();
+      const state = createRoomState(code, Date.now());
+      this.saveState(state);
+      await this.scheduleExpiry(state);
       return Response.json({ code }, { status: 201 });
     }
     if (url.pathname.endsWith("/_info") && request.method === "GET") {
       const state = this.loadState();
       if (state === undefined) return Response.json({ error: "Room not found" }, { status: 404 });
+      if (isRoomExpired(state, Date.now())) { await this.expireRoom(); return Response.json({ error: "Room expired" }, { status: 404 }); }
       return Response.json({ code: state.code, phase: state.phase, selectedGameId: state.selectedGameId,
         playerCount: state.players.length, capacity: 4, joinable: state.phase === "lobby" && state.players.length < 4 });
     }
@@ -64,7 +70,9 @@ export class RoomDurableObject extends DurableObject<Env> {
       return Response.json({ error: "WebSocket upgrade required" }, { status: 426 });
     const roomId = request.headers.get("X-Room-ID");
     if (roomId === null) return Response.json({ error: "Room context missing" }, { status: 400 });
-    if (this.loadState() === undefined) return Response.json({ error: "Room not found" }, { status: 404 });
+    const state = this.loadState();
+    if (state === undefined) return Response.json({ error: "Room not found" }, { status: 404 });
+    if (isRoomExpired(state, Date.now())) { await this.expireRoom(); return Response.json({ error: "Room expired" }, { status: 404 }); }
     const pair = new WebSocketPair(); const client = pair[0]; const server = pair[1]; const now = Date.now();
     server.serializeAttachment({ playerId: null, roomId, connectedAt: now, rateWindowStartedAt: now, rateCount: 0 } satisfies SessionAttachment);
     this.ctx.acceptWebSocket(server);
@@ -114,7 +122,7 @@ export class RoomDurableObject extends DurableObject<Env> {
       this.saveState(state);
       webSocket.send(serializeServerMessage({ type: "server:hello", protocolVersion: PROTOCOL_VERSION,
         roomId: state.code, playerId: admitted.value.id, reconnectToken: token, reconnectGraceMs: RECONNECT_GRACE_MS }));
-      this.broadcastState(state); return;
+      this.broadcastState(state); await this.scheduleExpiry(state); return;
     }
     if (parsed.type === "client:hello") { webSocket.send(errorMessage("invalid_message", "Session is already admitted.")); return; }
     const result = applyRoomMessage(state, attachment.playerId, parsed, now);
@@ -122,6 +130,7 @@ export class RoomDurableObject extends DurableObject<Env> {
     if (!result.changed) return;
     this.saveState(state); this.broadcastState(state);
     if (state.phase === "starting") { advanceStarting(state, Date.now()); this.saveState(state); this.broadcastState(state); }
+    await this.scheduleExpiry(state);
     if (parsed.type === "room:leave") webSocket.close(1000, "Left room");
   }
 
@@ -137,6 +146,7 @@ export class RoomDurableObject extends DurableObject<Env> {
   override webSocketError(webSocket: WebSocket): void { webSocket.close(1011, "WebSocket error"); }
   override async alarm(): Promise<void> {
     const state = this.loadState(); if (state === undefined) return;
+    if (isRoomExpired(state, Date.now())) { await this.expireRoom(); return; }
     if (expireDisconnectedPlayers(state, Date.now()).length > 0) { this.saveState(state); this.broadcastState(state); }
     await this.scheduleExpiry(state);
   }
@@ -156,9 +166,15 @@ export class RoomDurableObject extends DurableObject<Env> {
     }
   }
   private async scheduleExpiry(state: RoomState): Promise<void> {
-    const next = state.players.filter((item) => !item.connected).map((item) => item.disconnectedAt)
+    const reconnectExpiry = state.players.filter((item) => !item.connected).map((item) => item.disconnectedAt)
       .filter((value): value is number => value !== null)
       .map((value) => value + RECONNECT_GRACE_MS).sort((a, b) => a - b)[0];
-    if (next === undefined) await this.ctx.storage.deleteAlarm(); else await this.ctx.storage.setAlarm(next);
+    await this.ctx.storage.setAlarm(Math.min(reconnectExpiry ?? Number.POSITIVE_INFINITY, roomExpiresAt(state)));
+  }
+  private async expireRoom(): Promise<void> {
+    for (const socket of this.ctx.getWebSockets()) {
+      try { socket.close(4002, "Room expired"); } catch { /* stale socket */ }
+    }
+    await this.ctx.storage.deleteAll();
   }
 }
