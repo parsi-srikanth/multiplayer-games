@@ -22,6 +22,7 @@ describe("GameRegistry", () => {
       "word-race",
       "tic-tac-toe-plus",
       "dots-boxes",
+      "connect-four",
     ]);
   });
 

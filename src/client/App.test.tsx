@@ -66,7 +66,7 @@ describe("Parsi Games product shell", () => {
 
   it("moves through game and results screens with rematch controls", async () => {
     const transport = new MockRoomTransport();
-    await transport.createRoom({ displayName: "Ari", gameId: "connect-four" });
+    await transport.createRoom({ displayName: "Ari", gameId: "category-blitz" });
     open("/lobby/PLAY-42");
     const user = userEvent.setup();
     render(<App transport={transport} />);
