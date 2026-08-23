@@ -55,10 +55,6 @@ export class RoomDurableObject extends DurableObject<Env> {
   private roomRateWindowStartedAt = Date.now();
   private roomRateCount = 0;
 
-  constructor(ctx: DurableObjectState, env: Env) {
-    super(ctx, env);
-    this.ensureSchema();
-  }
   private ensureSchema(): void {
     this.ctx.storage.sql.exec(`
       CREATE TABLE IF NOT EXISTS room_state (

@@ -55,6 +55,20 @@ describe("authoritative room engine", () => {
     expect(expireDisconnectedPlayers(state, 101 + RECONNECT_GRACE_MS - 1)).toEqual([]);
     expect(expireDisconnectedPlayers(state, 101 + RECONNECT_GRACE_MS)).toEqual(["p1"]);
   });
+  it("enforces reconnect expiry synchronously even when an alarm is delayed", () => {
+    const beforeDeadline = roomWithPlayers(1);
+    disconnectPlayer(beforeDeadline, "p1", 100);
+    expect(reconnectPlayer(beforeDeadline, "token-1", 100 + RECONNECT_GRACE_MS - 1)).toMatchObject({ ok: true });
+
+    const atDeadline = roomWithPlayers(1);
+    disconnectPlayer(atDeadline, "p1", 100);
+    expect(reconnectPlayer(atDeadline, "token-1", 100 + RECONNECT_GRACE_MS)).toMatchObject({ ok: false, code: "not_admitted" });
+
+    const afterDelayedAlarm = roomWithPlayers(1);
+    disconnectPlayer(afterDelayedAlarm, "p1", 100);
+    expect(reconnectPlayer(afterDelayedAlarm, "token-1", 100 + RECONNECT_GRACE_MS + 60_000))
+      .toMatchObject({ ok: false, code: "not_admitted" });
+  });
   it("rejects unknown games and derives results only from validated game commands", () => {
     const state = roomWithPlayers();
     expect(applyRoomMessage(state, "p2", { type: "room:select_game", gameId: "cows-bulls-challenge" }, 10))

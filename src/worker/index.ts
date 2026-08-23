@@ -14,6 +14,16 @@ function multiplayerUnavailable(origin: string | null): Response {
     { status: 503, headers: { ...corsHeaders(origin), "Retry-After": "300" } },
   );
 }
+async function enforceRateLimit(binding: RateLimit, request: Request, origin: string | null): Promise<Response | undefined> {
+  try {
+    const result = await binding.limit({ key: request.headers.get("CF-Connecting-IP") ?? "unknown-client" });
+    if (result.success) return undefined;
+    return Response.json(
+      { error: "This multiplayer action is temporarily limited. Solo play remains available.", code: "multiplayer_rate_limited" },
+      { status: 429, headers: { ...corsHeaders(origin), "Retry-After": "60" } },
+    );
+  } catch { return multiplayerUnavailable(origin); }
+}
 function withCors(response: Response, origin: string | null): Response {
   const next = new Response(response.body, response);
   for (const [key, value] of Object.entries(corsHeaders(origin))) next.headers.set(key, value);
@@ -38,14 +48,8 @@ export default {
     }
     if (url.pathname === "/api/health" && request.method === "GET") return Response.json({ status: "ok" }, { headers: corsHeaders(origin) });
     if (url.pathname === "/api/rooms" && request.method === "POST") {
-      const rateLimitKey = request.headers.get("CF-Connecting-IP") ?? "unknown-client";
-      try {
-        const limit = await env.ROOM_CREATION_LIMITER.limit({ key: rateLimitKey });
-        if (!limit.success) return Response.json(
-          { error: "Room creation is temporarily limited. Solo play remains available.", code: "room_creation_limited" },
-          { status: 429, headers: { ...corsHeaders(origin), "Retry-After": "60" } },
-        );
-      } catch { return multiplayerUnavailable(origin); }
+      const limited = await enforceRateLimit(env.ROOM_CREATION_LIMITER, request, origin);
+      if (limited !== undefined) return limited;
       try {
         for (let attempt = 0; attempt < 12; attempt += 1) {
           const code = generateRoomCode();
@@ -60,12 +64,16 @@ export default {
     }
     const infoRoomId = roomInfoIdFromPath(url.pathname);
     if (infoRoomId !== undefined && request.method === "GET") {
+      const limited = await enforceRateLimit(env.ROOM_ACCESS_LIMITER, request, origin);
+      if (limited !== undefined) return limited;
       try { return withCors(await env.ROOMS.getByName(infoRoomId).fetch(internalRequest(request, infoRoomId, "_info")), origin); }
       catch { return multiplayerUnavailable(origin); }
     }
     const roomId = roomIdFromPath(url.pathname);
     if (roomId !== undefined) {
       if (!isWebSocketUpgrade(request)) return jsonError(426, "Expected a GET WebSocket upgrade.", origin);
+      const limited = await enforceRateLimit(env.ROOM_ACCESS_LIMITER, request, origin);
+      if (limited !== undefined) return limited;
       const headers = new Headers(request.headers); headers.set("X-Room-ID", roomId);
       try { return await env.ROOMS.getByName(roomId).fetch(new Request(request, { headers })); }
       catch { return multiplayerUnavailable(origin); }

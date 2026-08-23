@@ -71,6 +71,9 @@ export function admitPlayer(state: RoomState, input: { id: string; displayName: 
 export function reconnectPlayer(state: RoomState, tokenHash: string, now: number): EngineResult<PlayerState> {
   const existing = state.players.find((item) => item.tokenHash === tokenHash);
   if (existing === undefined) return { ok: false, code: "not_admitted", message: "Reconnect token is invalid or expired." };
+  const disconnectedAt = existing.disconnectedAt;
+  if (disconnectedAt === null || now - disconnectedAt >= RECONNECT_GRACE_MS)
+    return { ok: false, code: "not_admitted", message: "Reconnect token is invalid or expired." };
   existing.connected = true;
   existing.disconnectedAt = null;
   state.hostId ??= existing.id;

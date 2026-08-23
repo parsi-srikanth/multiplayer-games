@@ -1,6 +1,6 @@
 import { env, exports } from "cloudflare:workers";
-import { afterEach, describe, expect, it } from "vitest";
-import { evictDurableObject, reset, runDurableObjectAlarm, runInDurableObject } from "cloudflare:test";
+import { describe, expect, it } from "vitest";
+import { evictDurableObject, runDurableObjectAlarm, runInDurableObject } from "cloudflare:test";
 import type { RoomProjection, ServerMessage } from "../shared/protocol";
 import { ROOM_INACTIVE_TTL_MS } from "./room-engine";
 
@@ -48,8 +48,6 @@ async function connect(code: string, name: string, reconnectToken?: string): Pro
   return { inbox, playerId: hello.playerId, token: hello.reconnectToken };
 }
 
-afterEach(async () => { await reset(); });
-
 describe("RoomDurableObject integration", () => {
   it("rate limits room creation per client before allocating Durable Objects", async () => {
     const statuses: number[] = [];
@@ -60,6 +58,22 @@ describe("RoomDurableObject integration", () => {
       statuses.push(response.status);
     }
     expect(statuses).toEqual([201, 201, 201, 201, 201, 429]);
+  });
+
+  it("rate limits room access without creating SQLite storage for unknown codes", async () => {
+    const headers = { "CF-Connecting-IP": "203.0.113.20" };
+    const first = await exports.default.fetch("https://games.srikanthparsi.com/api/rooms/ZZZZZ", { headers });
+    expect(first.status).toBe(404);
+    const unknownStub = env.ROOMS.getByName("ZZZZZ");
+    await runInDurableObject(unknownStub, (_instance, state) => {
+      expect(state.storage.sql.exec<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table'").toArray()).toEqual([]);
+    });
+    const statuses: number[] = [];
+    for (let attempt = 1; attempt < 31; attempt += 1) {
+      statuses.push((await exports.default.fetch("https://games.srikanthparsi.com/api/rooms/ZZZZZ", { headers })).status);
+    }
+    expect(statuses.slice(0, 29).every((status) => status === 404)).toBe(true);
+    expect(statuses[29]).toBe(429);
   });
 
   it("persists through hibernation, reconnects, derives scores, and deletes expired SQLite state", async () => {
